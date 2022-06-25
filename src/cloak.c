@@ -4,13 +4,12 @@
 #include <errno.h>
 
 #include "cloak_types.h"
+#include "reader.h"
 
 
 #define CLOAK_MERGE_QUALITY_HIGH				1
 #define CLOAK_MERGE_QUALITY_MEDIUM				2
 #define CLOAK_MERGE_QUALITY_LOW					4
-
-#define BLOCK_SIZE								4096
 
 char * getFileExtension(char * pszFilename)
 {
@@ -54,7 +53,6 @@ int main(int argc, char ** argv)
 	char *			pszSourceFilename = NULL;
 	boolean			isMerge = false;
 	FILE *			fSource;
-	FILE *			fInput;
 	FILE *			fOutput;
 	FILE *			fKey;
 	
@@ -133,6 +131,8 @@ int main(int argc, char ** argv)
     if (isMerge) {
 		uint8_t *		inputBlock;
 		uint32_t		bytesRead;
+		uint32_t		blockSize;
+		HCLOAK			hc;
 		
     	fSource = fopen(pszSourceFilename, "rb");
     	
@@ -148,28 +148,29 @@ int main(int argc, char ** argv)
     		exit(-1);
     	}
     	
-    	fInput = fopen(pszInputFilename, "rb");
-    	
-    	if (fInput == NULL) {
+		hc = rdr_open(pszInputFilename, 0, aes256);
+
+    	if (hc == NULL) {
     		fprintf(stderr, "Could not open input file %s: %s\n", pszInputFilename, strerror(errno));
     		exit(-1);
     	}
     	
-    	inputBlock = (uint8_t *)malloc(BLOCK_SIZE);
+		blockSize = rdr_get_block_size(hc);
+
+    	inputBlock = (uint8_t *)malloc(blockSize);
     	
     	if (inputBlock == NULL) {
     		fprintf(stderr, "Could not allocate memory for input block\n");
-			fclose(fInput);
+			rdr_close(hc);
 			fclose(fOutput);
 			fclose(fSource);
 			exit(-1);
     	}
     	
-    	bytesRead = fread(inputBlock, 1, BLOCK_SIZE, fInput);
+		bytesRead = rdr_read_block(hc, inputBlock);
     	
     	
-    	
-    	fclose(fInput);
+    	rdr_close(hc);
     	fclose(fOutput);
     	fclose(fSource);
     }
