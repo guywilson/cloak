@@ -148,7 +148,7 @@ int main(int argc, char ** argv)
     		exit(-1);
     	}
     	
-		hc = rdr_open(pszInputFilename, 0, aes256);
+//		hc = rdr_open(pszInputFilename, 0, aes256);
 
     	if (hc == NULL) {
     		fprintf(stderr, "Could not open input file %s: %s\n", pszInputFilename, strerror(errno));
@@ -167,8 +167,9 @@ int main(int argc, char ** argv)
 			exit(-1);
     	}
     	
-		bytesRead = rdr_read_block(hc, inputBlock);
-    	
+		while (rdr_has_more_blocks(hc)) {
+			bytesRead = rdr_read_block(hc, inputBlock);
+		}
     	
     	rdr_close(hc);
     	fclose(fOutput);

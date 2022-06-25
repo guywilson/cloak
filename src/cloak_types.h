@@ -16,15 +16,4 @@ typedef enum {
 }
 encryption_algo;
 
-typedef struct __attribute__((__packed__))
-{
-    uint32_t        crc;
-    uint32_t        originalLength;
-    uint32_t        encryptedLength;
-}
-CLOAK_HEADER;
-
-struct _cloak_handle;
-typedef struct _cloak_handle * HCLOAK;
-
 #endif
