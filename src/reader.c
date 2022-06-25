@@ -15,7 +15,6 @@
 struct _cloak_handle {
 	encryption_algo		algo;
 	uint8_t *			data;
-	uint8_t *			key;
 	uint32_t			blockSize;
 	uint32_t			fileLength;
 	uint32_t			dataLength;
@@ -24,6 +23,7 @@ struct _cloak_handle {
 	uint32_t			counter;
 
 	FILE *				fptrInput;
+	FILE *				fptrKey;
 
 	gcry_cipher_hd_t	cipherHandle;
 };
@@ -213,9 +213,36 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 	return hc;
 }
 
+int rdr_set_keystream_file(HCLOAK hc, char * pszKeystreamFilename)
+{
+	uint32_t		keyLength;
+
+	hc->fptrKey = fopen(pszKeystreamFilename, "rb");
+
+	if (hc->fptrKey == NULL) {
+		fprintf(stderr, "Failed to open keystream file %s: %s\n", pszKeystreamFilename, strerror(errno));
+		return -1;
+	}
+
+	keyLength = getFileSize(hc->fptrKey);
+
+	if (keyLength < hc->dataLength) {
+		fprintf(stderr, "Keystream file must be at least %u bytes long\n", hc->dataLength);
+		fclose(hc->fptrKey);
+		return -1;
+	}
+
+	return 0;
+}
+
 void rdr_close(HCLOAK hc)
 {
 	fclose(hc->fptrInput);
+
+	if (hc->fptrKey != NULL) {
+		fclose(hc->fptrKey);
+	}
+
 	free(hc->data);
 	free(hc);
 }
@@ -266,6 +293,15 @@ uint32_t rdr_read_block(HCLOAK hc, uint8_t * buffer)
 		}
 		else {
 			bytesRead = fread(buffer, 1, hc->blockSize, hc->fptrInput);
+		}
+
+		if (hc->algo == xor) {
+			uint32_t		index = 0;
+
+			while (index < hc->blockSize) {
+				buffer[index] = buffer[index] ^ (uint8_t)fgetc(hc->fptrKey);
+				index++;
+			}
 		}
 	}
 

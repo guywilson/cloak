@@ -8,6 +8,7 @@ struct _cloak_handle;
 typedef struct _cloak_handle * HCLOAK;
 
 HCLOAK      rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t blockSize, encryption_algo a);
+int         rdr_set_keystream_file(HCLOAK hc, char * pszKeystreamFilename);
 void        rdr_close(HCLOAK hc);
 uint32_t    rdr_get_block_size(HCLOAK hc);
 uint32_t    rdr_get_data_length(HCLOAK hc);
