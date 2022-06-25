@@ -9,11 +9,4 @@ typedef enum {
 }
 boolean;
 
-typedef enum {
-	xor,
-	aes256,
-	none
-}
-encryption_algo;
-
 #endif

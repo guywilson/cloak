@@ -18,6 +18,7 @@ struct _cloak_handle {
 	uint32_t			blockSize;
 	uint32_t			fileLength;
 	uint32_t			dataLength;
+	uint32_t			encryptionBufferLength;
 
 	uint32_t			blockCounter;
 	uint32_t			counter;
@@ -32,10 +33,11 @@ typedef struct __attribute__((__packed__))
 {
     uint32_t        fileLength;
     uint32_t        dataLength;
+	uint8_t			padding[8];
 }
 CLOAK_HEADER;
 
-uint32_t getFileSize(FILE * fptr)
+uint32_t _getFileSize(FILE * fptr)
 {
 	uint32_t                size;
 	long                    currentPos;
@@ -55,7 +57,6 @@ uint32_t getFileSize(FILE * fptr)
 HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t blockSize, encryption_algo a)
 {
 	HCLOAK			hc;
-	uint32_t		rawDataLength;
 
 	if (blockSize == 0) {
 		fprintf(stderr, "Block size must be greater than 0\n");
@@ -78,7 +79,6 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 	hc->counter = 0;
 	hc->blockCounter = 0;
 
-
 	hc->fptrInput = fopen(pszFilename, "rb");
 
 	if (hc->fptrInput == NULL) {
@@ -86,10 +86,15 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 		return NULL;
 	}
 
-	hc->fileLength = getFileSize(hc->fptrInput);
+	hc->fileLength = _getFileSize(hc->fptrInput);
 
-	rawDataLength = hc->fileLength + sizeof(CLOAK_HEADER);
-
+	/*
+	** The AES-256 data frame consists of:
+	**
+	** 1. 16-byte header with filelength & datalength
+	** 2. IV block, typically 128-bit, 16 bytes
+	** 3. Encryted data n blocks long
+	*/
 	if (hc->algo == aes256) {
 		int				err;
 		int				index = 0;
@@ -155,13 +160,8 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 			return NULL;
 		}
 
-		/*
-		** With AES256, the first block of data has to be an IV block
-		** which we generate randomly...
-		*/
-		rawDataLength += blklen;
-
-		hc->dataLength = hc->fileLength + (hc->blockSize - (rawDataLength % hc->blockSize));
+		hc->encryptionBufferLength = hc->fileLength + (blklen - (hc->fileLength % blklen));
+		hc->dataLength = hc->encryptionBufferLength + sizeof(CLOAK_HEADER) + blklen;
 
 		hc->data = (uint8_t *)malloc(hc->dataLength);
 
@@ -173,16 +173,16 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 			return NULL;
 		}
 
-		memcpy(hc->data, iv, blklen);
-		index += blklen;
-
-		free(iv);
-
 		header.fileLength = hc->fileLength;
 		header.dataLength = hc->dataLength;
 
 		memcpy(&hc->data[index], &header, sizeof(CLOAK_HEADER));
 		index += sizeof(CLOAK_HEADER);
+
+		memcpy(hc->data, iv, blklen);
+		index += blklen;
+
+		free(iv);
 
 		bytesRead = fread(&hc->data[index], 1, hc->fileLength, hc->fptrInput);
 
@@ -196,7 +196,20 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 
 		fclose(hc->fptrInput);
 
-		err = gcry_cipher_encrypt(hc->cipherHandle, hc->data, hc->dataLength, NULL, 0);
+		/*
+		** Fill any remaining bytes with random data...
+		*/
+		memcpy(
+			&hc->data[index + hc->fileLength], 
+			&random_block, 
+			(hc->encryptionBufferLength - hc->fileLength));
+
+		err = gcry_cipher_encrypt(
+					hc->cipherHandle, 
+					&hc->data[index], 
+					hc->encryptionBufferLength, 
+					NULL, 
+					0);
 
 		if (err) {
 			fprintf(stderr, "Failed to set encrypt with gcrypt\n");
@@ -207,7 +220,7 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 		gcry_cipher_close(hc->cipherHandle);
 	}
 	else {
-		hc->dataLength = hc->fileLength + (hc->blockSize - (rawDataLength % hc->blockSize));
+		hc->encryptionBufferLength = hc->fileLength + (hc->blockSize - (hc->fileLength % hc->blockSize));
 	}
 
 	return hc;
@@ -224,7 +237,7 @@ int rdr_set_keystream_file(HCLOAK hc, char * pszKeystreamFilename)
 		return -1;
 	}
 
-	keyLength = getFileSize(hc->fptrKey);
+	keyLength = _getFileSize(hc->fptrKey);
 
 	if (keyLength < hc->dataLength) {
 		fprintf(stderr, "Keystream file must be at least %u bytes long\n", hc->dataLength);

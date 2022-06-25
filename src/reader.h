@@ -7,6 +7,13 @@
 struct _cloak_handle;
 typedef struct _cloak_handle * HCLOAK;
 
+typedef enum {
+	xor,
+	aes256,
+	none
+}
+encryption_algo;
+
 HCLOAK      rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t blockSize, encryption_algo a);
 int         rdr_set_keystream_file(HCLOAK hc, char * pszKeystreamFilename);
 void        rdr_close(HCLOAK hc);

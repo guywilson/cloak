@@ -11,6 +11,8 @@
 #define CLOAK_MERGE_QUALITY_MEDIUM				2
 #define CLOAK_MERGE_QUALITY_LOW					4
 
+#define BLOCK_SIZE								512
+
 char * getFileExtension(char * pszFilename)
 {
 	char *			pszExt = NULL;
@@ -51,10 +53,12 @@ int main(int argc, char ** argv)
 	char *			pszKeystreamFilename = NULL;
 	char *			pszOutputFilename = NULL;
 	char *			pszSourceFilename = NULL;
+	uint8_t *		key;
+	uint32_t		keyLength;
 	boolean			isMerge = false;
 	FILE *			fSource;
 	FILE *			fOutput;
-	FILE *			fKey;
+	encryption_algo	algo;
 	
     if (argc > 1) {
         for (i = 1;i < argc;i++) {
@@ -127,11 +131,19 @@ int main(int argc, char ** argv)
 		fprintf(stderr, "File extension not found for file %s\n", pszSourceFilename);
 		exit(-1);
     }
+
+	if (pszKeystreamFilename != NULL) {
+		algo = xor;
+	}
+	else {
+		algo = aes256;
+	}
     
     if (isMerge) {
 		uint8_t *		inputBlock;
 		uint32_t		bytesRead;
 		uint32_t		blockSize;
+		uint32_t		count;
 		HCLOAK			hc;
 		
     	fSource = fopen(pszSourceFilename, "rb");
@@ -148,16 +160,18 @@ int main(int argc, char ** argv)
     		exit(-1);
     	}
     	
-//		hc = rdr_open(pszInputFilename, 0, aes256);
+		hc = rdr_open(pszInputFilename, key, keyLength, BLOCK_SIZE, algo);
 
     	if (hc == NULL) {
     		fprintf(stderr, "Could not open input file %s: %s\n", pszInputFilename, strerror(errno));
     		exit(-1);
     	}
     	
-		blockSize = rdr_get_block_size(hc);
+		if (algo == xor) {
+			rdr_set_keystream_file(hc, pszKeystreamFilename);
+		}
 
-    	inputBlock = (uint8_t *)malloc(blockSize);
+    	inputBlock = (uint8_t *)malloc(BLOCK_SIZE);
     	
     	if (inputBlock == NULL) {
     		fprintf(stderr, "Could not allocate memory for input block\n");
@@ -169,6 +183,8 @@ int main(int argc, char ** argv)
     	
 		while (rdr_has_more_blocks(hc)) {
 			bytesRead = rdr_read_block(hc, inputBlock);
+
+			
 		}
     	
     	rdr_close(hc);
