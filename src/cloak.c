@@ -5,7 +5,7 @@
 
 #include "cloak_types.h"
 #include "reader.h"
-
+#include "random_block.h"
 
 #define CLOAK_MERGE_QUALITY_HIGH				1
 #define CLOAK_MERGE_QUALITY_MEDIUM				2
@@ -160,7 +160,7 @@ int main(int argc, char ** argv)
     		exit(-1);
     	}
     	
-		hc = rdr_open(pszInputFilename, key, keyLength, BLOCK_SIZE, algo);
+		hc = rdr_open(pszInputFilename, random_block, 32, BLOCK_SIZE, algo);
 
     	if (hc == NULL) {
     		fprintf(stderr, "Could not open input file %s: %s\n", pszInputFilename, strerror(errno));
@@ -184,7 +184,30 @@ int main(int argc, char ** argv)
 		while (rdr_has_more_blocks(hc)) {
 			bytesRead = rdr_read_block(hc, inputBlock);
 
-			
+			printf("Read block %u bytes long\n\n", bytesRead);
+
+			for (i = 0;i < bytesRead;i += 16) {
+				printf(
+					"%08X\t%02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X\n", 
+					i,
+					inputBlock[i], 
+					inputBlock[i+1], 
+					inputBlock[i+2], 
+					inputBlock[i+3], 
+					inputBlock[i+4], 
+					inputBlock[i+5], 
+					inputBlock[i+6], 
+					inputBlock[i+7],
+					inputBlock[i+8],
+					inputBlock[i+9],
+					inputBlock[i+10],
+					inputBlock[i+11],
+					inputBlock[i+12],
+					inputBlock[i+13],
+					inputBlock[i+14],
+					inputBlock[i+15]
+				);
+			}
 		}
     	
     	rdr_close(hc);
