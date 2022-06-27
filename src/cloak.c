@@ -192,7 +192,7 @@ int main(int argc, char ** argv)
 	}
     
     if (isMerge) {
-		uint8_t *		inputBlock;
+		uint8_t *		secretDataBlock;
 		uint8_t *		rowBuffer;
 		uint32_t		rowBufferLen;
 		uint32_t		bytesRead;
@@ -220,9 +220,9 @@ int main(int argc, char ** argv)
 			rdr_set_keystream_file(hc, pszKeystreamFilename);
 		}
 
-    	inputBlock = (uint8_t *)malloc(BLOCK_SIZE);
+    	secretDataBlock = (uint8_t *)malloc(BLOCK_SIZE);
     	
-    	if (inputBlock == NULL) {
+    	if (secretDataBlock == NULL) {
     		fprintf(stderr, "Could not allocate memory for input block\n");
 			rdr_close(hc);
 			fclose(fOutput);
@@ -249,27 +249,87 @@ int main(int argc, char ** argv)
 		}
 
 		uint32_t		secretBytesRemaining = 0;
-		uint32_t		imgByteCounter;
 		int				numImgBytesRequired = getNumImageBytesRequired(quality);
+		int				rowBufferIndex = 0;
 		uint8_t			imageBuffer[8];
 		uint8_t			secretByte = 0x00;
+		int				secretBufferIndex = 0;
+		boolean			hasMoreDataToMerge = true;
+		boolean			deferMerge = false;
+		int				deferredMergeIndex = 0;
+		int				deferredBytesLeft = 0;
 
 		while (pngrw_has_more_rows(hpng)) {
 			pngrw_read_row(hpng, rowBuffer, rowBufferLen);
 
-			for (imgByteCounter = 0;imgByteCounter < rowBufferLen;imgByteCounter++) {
+			for (rowBufferIndex = 0;rowBufferIndex < rowBufferLen;rowBufferIndex += numImgBytesRequired) {
 				if (secretBytesRemaining == 0) {
 					if (rdr_has_more_blocks(hc)) {
-						secretBytesRemaining = rdr_read_block(hc, inputBlock);
+						secretBytesRemaining = rdr_read_block(hc, secretDataBlock);
+						secretBufferIndex = 0;
+					}
+					else {
+						hasMoreDataToMerge = false;
 					}
 				}
 
-				mergeSecretByte(imageBuffer, numImgBytesRequired, secretByte, quality);
+				if (hasMoreDataToMerge) {
+					if (rowBufferIndex <= (rowBufferLen - numImgBytesRequired)) {
+						/*
+						** We have sufficient image bytes to do the merge...
+						*/
+						if (deferMerge) {
+							memcpy(
+								&imageBuffer[deferredMergeIndex], 
+								&rowBuffer[rowBufferIndex], 
+								(numImgBytesRequired - deferredBytesLeft));
+
+							deferMerge = false;
+						}
+						else {
+							memcpy(
+								imageBuffer, 
+								&rowBuffer[rowBufferIndex], 
+								numImgBytesRequired);
+						}
+
+						secretByte = secretDataBlock[secretBufferIndex++];
+						secretBytesRemaining--;
+
+						mergeSecretByte(imageBuffer, numImgBytesRequired, secretByte, quality);
+
+						/*
+						** Copy the merged bytes back to the row buffer ready for writing...
+						*/
+						memcpy(&rowBuffer[rowBufferIndex], imageBuffer, numImgBytesRequired);
+					}
+					else {
+						/*
+						** We don't have enough image bytes, so defer the merge 
+						** until we get some more... 
+						*/
+						deferMerge = true;
+						deferredBytesLeft = rowBufferLen - rowBufferIndex;
+
+						/*
+						** Copy what is left in the row buffer and save
+						** the index so we know where to start when we
+						** have more data...
+						*/
+						memcpy(imageBuffer, &rowBuffer[rowBufferLen - rowBufferIndex], deferredBytesLeft);
+
+						deferredMergeIndex = deferredBytesLeft;
+					}
+				}
+			}
+
+			if (!deferMerge) {
+				//pngrw_write_row(hpng, rowBuffer, rowBufferLen);
 			}
 		}
 
 		while (rdr_has_more_blocks(hc)) {
-			bytesRead = rdr_read_block(hc, inputBlock);
+			bytesRead = rdr_read_block(hc, secretDataBlock);
 
 			printf("\nRead block %u bytes long\n", bytesRead);
 
@@ -277,27 +337,27 @@ int main(int argc, char ** argv)
 				printf(
 					"%08X\t%02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X\n", 
 					i,
-					inputBlock[i], 
-					inputBlock[i+1], 
-					inputBlock[i+2], 
-					inputBlock[i+3], 
-					inputBlock[i+4], 
-					inputBlock[i+5], 
-					inputBlock[i+6], 
-					inputBlock[i+7],
-					inputBlock[i+8],
-					inputBlock[i+9],
-					inputBlock[i+10],
-					inputBlock[i+11],
-					inputBlock[i+12],
-					inputBlock[i+13],
-					inputBlock[i+14],
-					inputBlock[i+15]
+					secretDataBlock[i], 
+					secretDataBlock[i+1], 
+					secretDataBlock[i+2], 
+					secretDataBlock[i+3], 
+					secretDataBlock[i+4], 
+					secretDataBlock[i+5], 
+					secretDataBlock[i+6], 
+					secretDataBlock[i+7],
+					secretDataBlock[i+8],
+					secretDataBlock[i+9],
+					secretDataBlock[i+10],
+					secretDataBlock[i+11],
+					secretDataBlock[i+12],
+					secretDataBlock[i+13],
+					secretDataBlock[i+14],
+					secretDataBlock[i+15]
 				);
 			}
 		}
 
-		free(inputBlock);
+		free(secretDataBlock);
     	
     	rdr_close(hc);
 		pngrw_close(hpng);
