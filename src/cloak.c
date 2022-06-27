@@ -7,31 +7,21 @@
 #include "reader.h"
 #include "pngrw.h"
 #include "random_block.h"
+#include "utils.h"
+
+typedef enum {
+	quality_high = 1,
+	quality_medium = 2,
+	quality_low = 4
+}
+merge_quality;
 
 #define CLOAK_MERGE_QUALITY_HIGH				1
 #define CLOAK_MERGE_QUALITY_MEDIUM				2
 #define CLOAK_MERGE_QUALITY_LOW					4
 
-#define BLOCK_SIZE								512
+#define BLOCK_SIZE								64
 
-char * getFileExtension(char * pszFilename)
-{
-	char *			pszExt = NULL;
-	int				i;
-	
-	i = strlen(pszFilename);
-
-	while (i > 0) {
-		if (pszFilename[i] == '.') {
-			pszExt = &pszFilename[i + 1];
-			break;
-		}
-		
-		i--;
-	}
-
-	return pszExt;		
-}
 
 void printUsage()
 {
@@ -42,6 +32,68 @@ void printUsage()
     printf("             -f [file to cloak]\n");
     printf("             -k [keystream file for one-time pad encryption]\n");
     printf("             -q [merge quality] either 1, 2, or 4 bits per byte\n\n");
+}
+
+inline uint8_t getBitMask(merge_quality quality) {
+	uint8_t mask = 0x00;
+
+	for (int i = 0;i < quality;i++) {
+		mask += (0x01 << i) & 0xFF;
+	}
+
+	return mask;
+}
+
+inline int getNumImageBytesRequired(merge_quality quality)
+{
+	return (8 / quality);
+}
+
+void mergeSecretByte(uint8_t * imageBytes, int numImageBytes, uint8_t secretByte, merge_quality quality)
+{
+	uint8_t			mask;
+	uint8_t			secretBits;
+	int				i;
+	int				bitCounter = 0;
+	int				pos = 0;
+
+	mask = getBitMask(quality);
+
+    for (i = 0;i < numImageBytes;i++) {
+        secretBits = (secretByte >> bitCounter) & mask;
+        imageBytes[i] = (imageBytes[i] & ~mask) | secretBits;
+
+        bitCounter += quality;
+
+        if (bitCounter == 8) {
+            bitCounter = 0;
+            pos++;
+        }
+    }
+}
+
+uint8_t extractSecretByte(uint8_t * imageBytes, uint32_t numImageBytes, merge_quality quality)
+{
+	uint8_t			mask;
+	uint8_t			secretBits = 0x00;
+	uint8_t			secretByte = 0x00;
+	int				i;
+	int				bitCounter = 0;
+
+	mask = getBitMask(quality);
+
+    for (i = 0;i < numImageBytes;i++) {
+        secretBits = imageBytes[i] & mask;
+        secretByte += secretBits << bitCounter;
+
+        bitCounter += quality;
+
+        if (bitCounter == 8) {
+            bitCounter = 0;
+        }
+    }
+
+	return secretByte;
 }
 
 int main(int argc, char ** argv)
@@ -57,7 +109,6 @@ int main(int argc, char ** argv)
 	uint8_t *		key;
 	uint32_t		keyLength;
 	boolean			isMerge = false;
-	FILE *			fSource;
 	FILE *			fOutput;
 	encryption_algo	algo;
 	
@@ -145,26 +196,20 @@ int main(int argc, char ** argv)
 		uint8_t *		rowBuffer;
 		uint32_t		rowBufferLen;
 		uint32_t		bytesRead;
-		uint32_t		blockSize;
-		uint32_t		count;
 		HCLOAK			hc;
 		HPNG			hpng;
 		
-    	fSource = fopen(pszSourceFilename, "rb");
-    	
-    	if (fSource == NULL) {
-    		fprintf(stderr, "Could not open source file %s: %s\n", pszSourceFilename, strerror(errno));
-    		exit(-1);
-    	}
-    	
     	fOutput = fopen(pszOutputFilename, "wb");
     	
     	if (fOutput == NULL) {
     		fprintf(stderr, "Could not open output file %s: %s\n", pszOutputFilename, strerror(errno));
     		exit(-1);
     	}
+
+		key = (uint8_t *)random_block;
+		keyLength = 32U;
     	
-		hc = rdr_open(pszInputFilename, random_block, 32, BLOCK_SIZE, algo);
+		hc = rdr_open(pszInputFilename, key, keyLength, BLOCK_SIZE, algo);
 
     	if (hc == NULL) {
     		fprintf(stderr, "Could not open input file %s: %s\n", pszInputFilename, strerror(errno));
@@ -181,18 +226,46 @@ int main(int argc, char ** argv)
     		fprintf(stderr, "Could not allocate memory for input block\n");
 			rdr_close(hc);
 			fclose(fOutput);
-			fclose(fSource);
 			exit(-1);
     	}
     	
 		hpng = pngrw_open(pszSourceFilename, NULL);
 
+		if (hpng == NULL) {
+    		fprintf(stderr, "Could not open source image file %s: %s\n", pszInputFilename, strerror(errno));
+    		exit(-1);
+		}
+
 		rowBufferLen = pngrw_get_row_buffer_len(hpng);
 
 		rowBuffer = (uint8_t *)malloc(rowBufferLen);
 
+		if (rowBuffer == NULL) {
+    		fprintf(stderr, "Could not allocate memory for image row buffer\n");
+			rdr_close(hc);
+			pngrw_close(hpng);
+			fclose(fOutput);
+			exit(-1);
+		}
+
+		uint32_t		secretBytesRemaining = 0;
+		uint32_t		imgByteCounter;
+		int				numImgBytesRequired = getNumImageBytesRequired(quality);
+		uint8_t			imageBuffer[8];
+		uint8_t			secretByte = 0x00;
+
 		while (pngrw_has_more_rows(hpng)) {
 			pngrw_read_row(hpng, rowBuffer, rowBufferLen);
+
+			for (imgByteCounter = 0;imgByteCounter < rowBufferLen;imgByteCounter++) {
+				if (secretBytesRemaining == 0) {
+					if (rdr_has_more_blocks(hc)) {
+						secretBytesRemaining = rdr_read_block(hc, inputBlock);
+					}
+				}
+
+				mergeSecretByte(imageBuffer, numImgBytesRequired, secretByte, quality);
+			}
 		}
 
 		while (rdr_has_more_blocks(hc)) {
@@ -227,8 +300,8 @@ int main(int argc, char ** argv)
 		free(inputBlock);
     	
     	rdr_close(hc);
+		pngrw_close(hpng);
     	fclose(fOutput);
-    	fclose(fSource);
     }
     else {
     }

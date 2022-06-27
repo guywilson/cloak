@@ -22,6 +22,25 @@ uint32_t getFileSize(FILE * fptr)
 	return size;
 }
 
+char * getFileExtension(char * pszFilename)
+{
+	char *			pszExt = NULL;
+	int				i;
+	
+	i = strlen(pszFilename);
+
+	while (i > 0) {
+		if (pszFilename[i] == '.') {
+			pszExt = &pszFilename[i + 1];
+			break;
+		}
+		
+		i--;
+	}
+
+	return pszExt;		
+}
+
 void wipeBuffer(void * b, uint32_t bufferLen)
 {
     uint32_t        c;
