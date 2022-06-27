@@ -5,6 +5,7 @@
 
 #include "cloak_types.h"
 #include "reader.h"
+#include "pngrw.h"
 #include "random_block.h"
 
 #define CLOAK_MERGE_QUALITY_HIGH				1
@@ -141,10 +142,13 @@ int main(int argc, char ** argv)
     
     if (isMerge) {
 		uint8_t *		inputBlock;
+		uint8_t *		rowBuffer;
+		uint32_t		rowBufferLen;
 		uint32_t		bytesRead;
 		uint32_t		blockSize;
 		uint32_t		count;
 		HCLOAK			hc;
+		HPNG			hpng;
 		
     	fSource = fopen(pszSourceFilename, "rb");
     	
@@ -181,10 +185,20 @@ int main(int argc, char ** argv)
 			exit(-1);
     	}
     	
+		hpng = pngrw_open(pszSourceFilename, NULL);
+
+		rowBufferLen = pngrw_get_row_buffer_len(hpng);
+
+		rowBuffer = (uint8_t *)malloc(rowBufferLen);
+
+		while (pngrw_has_more_rows(hpng)) {
+			pngrw_read_row(hpng, rowBuffer, rowBufferLen);
+		}
+
 		while (rdr_has_more_blocks(hc)) {
 			bytesRead = rdr_read_block(hc, inputBlock);
 
-			printf("Read block %u bytes long\n\n", bytesRead);
+			printf("\nRead block %u bytes long\n", bytesRead);
 
 			for (i = 0;i < bytesRead;i += 16) {
 				printf(
@@ -209,6 +223,8 @@ int main(int argc, char ** argv)
 				);
 			}
 		}
+
+		free(inputBlock);
     	
     	rdr_close(hc);
     	fclose(fOutput);

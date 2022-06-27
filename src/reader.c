@@ -64,6 +64,8 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 	hc->counter = 0;
 	hc->blockCounter = 0;
 
+	hc->fptrKey = NULL;
+
 	hc->fptrInput = fopen(pszFilename, "rb");
 
 	if (hc->fptrInput == NULL) {
@@ -132,27 +134,6 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 
 		gcry_randomize(iv, blklen, GCRY_STRONG_RANDOM);
 
-		printf("\nIV block:\n");
-		printf(
-			"%02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X\n", 
-			iv[0], 
-			iv[1], 
-			iv[2], 
-			iv[3], 
-			iv[4], 
-			iv[5], 
-			iv[6], 
-			iv[7], 
-			iv[8], 
-			iv[9], 
-			iv[10], 
-			iv[11], 
-			iv[12], 
-			iv[13], 
-			iv[14], 
-			iv[15]
-		);
-
 		err = gcry_cipher_setiv(
 							hc->cipherHandle,
 							iv,
@@ -207,14 +188,15 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 		}
 
 		fclose(hc->fptrInput);
+		hc->fptrInput = NULL;
 
 		/*
 		** Fill any remaining bytes with random data...
 		*/
 		memcpy(
 			&hc->data[index + hc->fileLength], 
-			&random_block, 
-			(hc->encryptionBufferLength - hc->fileLength));
+			random_block, 
+			(hc->dataFrameLength - hc->fileLength - index));
 
 		err = gcry_cipher_encrypt(
 					hc->cipherHandle, 
@@ -262,13 +244,15 @@ int rdr_set_keystream_file(HCLOAK hc, char * pszKeystreamFilename)
 
 void rdr_close(HCLOAK hc)
 {
-	fclose(hc->fptrInput);
+	if (hc->fptrInput != NULL) {
+		fclose(hc->fptrInput);
+	}
 
 	if (hc->fptrKey != NULL) {
 		fclose(hc->fptrKey);
 	}
 
-	free(hc->data);
+	//free(hc->data);
 	free(hc);
 }
 
@@ -297,8 +281,6 @@ uint32_t rdr_read_block(HCLOAK hc, uint8_t * buffer)
 	uint32_t			bytesRead;
 
 	memcpy(buffer, random_block, hc->blockSize);
-
-	printf("\ncounter [%u] vs dataFrameLen [%u]\n", hc->counter, hc->dataFrameLength);
 
 	if (hc->algo == aes256) {
 		bytesRead = ((hc->dataFrameLength - hc->counter) >= hc->blockSize ? hc->blockSize : (hc->dataFrameLength - hc->counter));

@@ -47,6 +47,12 @@ void wipeBuffer(void * b, uint32_t bufferLen)
     memset(b, 0x00, bufferLen);
 }
 
+void secureFree(void * b, uint32_t len)
+{
+    wipeBuffer(b, len);
+    free(b);
+}
+
 void xorBuffer(void * target, void * source, size_t length)
 {
     uint32_t        c;
