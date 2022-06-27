@@ -4,7 +4,7 @@
 #include <errno.h>
 
 #include "cloak_types.h"
-#include "reader.h"
+#include "secretrw.h"
 #include "pngrw.h"
 #include "random_block.h"
 #include "utils.h"
@@ -12,13 +12,14 @@
 typedef enum {
 	quality_high = 1,
 	quality_medium = 2,
-	quality_low = 4
+	quality_low = 4,
+
+	/*
+	** Testing only!
+	*/
+	quality_none = 8
 }
 merge_quality;
-
-#define CLOAK_MERGE_QUALITY_HIGH				1
-#define CLOAK_MERGE_QUALITY_MEDIUM				2
-#define CLOAK_MERGE_QUALITY_LOW					4
 
 #define BLOCK_SIZE								64
 
@@ -99,7 +100,6 @@ uint8_t extractSecretByte(uint8_t * imageBytes, uint32_t numImageBytes, merge_qu
 int main(int argc, char ** argv)
 {
 	int				i;
-	int				quality = CLOAK_MERGE_QUALITY_HIGH;
 	char *			arg;
 	char *			pszExtension;
 	char *			pszInputFilename = NULL;
@@ -109,7 +109,7 @@ int main(int argc, char ** argv)
 	uint8_t *		key;
 	uint32_t		keyLength;
 	boolean			isMerge = false;
-	FILE *			fOutput;
+	merge_quality	quality;
 	encryption_algo	algo;
 	
     if (argc > 1) {
@@ -131,12 +131,14 @@ int main(int argc, char ** argv)
                     pszOutputFilename = strdup(argv[i + 1]);
                 }
                 else if (strncmp(arg, "-q", 2) == 0) {
-                    quality = atoi(argv[i + 1]);
+                    int q = atoi(argv[i + 1]);
 
-                    switch (quality) {
-                        case CLOAK_MERGE_QUALITY_HIGH:
-                        case CLOAK_MERGE_QUALITY_MEDIUM:
-                        case CLOAK_MERGE_QUALITY_LOW:
+                    switch (q) {
+                        case quality_high:
+                        case quality_medium:
+                        case quality_low:
+						case quality_none:
+							quality = q;
                             break;
 
                         default:
@@ -191,21 +193,24 @@ int main(int argc, char ** argv)
 		algo = aes256;
 	}
     
-    if (isMerge) {
-		uint8_t *		secretDataBlock;
-		uint8_t *		rowBuffer;
-		uint32_t		rowBufferLen;
-		uint32_t		bytesRead;
-		HCLOAK			hc;
-		HPNG			hpng;
-		
-    	fOutput = fopen(pszOutputFilename, "wb");
-    	
-    	if (fOutput == NULL) {
-    		fprintf(stderr, "Could not open output file %s: %s\n", pszOutputFilename, strerror(errno));
-    		exit(-1);
-    	}
+	HCLOAK			hc;
+	HPNG			hpng;
+	uint8_t *		secretDataBlock;
+	uint8_t *		rowBuffer;
+	uint8_t			imageBuffer[8];
+	uint8_t			secretByte = 0x00;
+	uint32_t		rowBufferLen;
+	uint32_t		bytesRead;
+	uint32_t		secretBytesRemaining = 0;
+	boolean			hasMoreDataToMerge = true;
+	boolean			deferMerge = false;
+	int				numImgBytesRequired = getNumImageBytesRequired(quality);
+	int				rowBufferIndex = 0;
+	int				secretBufferIndex = 0;
+	int				deferredMergeIndex = 0;
+	int				deferredBytesLeft = 0;
 
+    if (isMerge) {
 		key = (uint8_t *)random_block;
 		keyLength = 32U;
     	
@@ -225,11 +230,10 @@ int main(int argc, char ** argv)
     	if (secretDataBlock == NULL) {
     		fprintf(stderr, "Could not allocate memory for input block\n");
 			rdr_close(hc);
-			fclose(fOutput);
 			exit(-1);
     	}
     	
-		hpng = pngrw_open(pszSourceFilename, NULL);
+		hpng = pngrw_open(pszSourceFilename, pszOutputFilename);
 
 		if (hpng == NULL) {
     		fprintf(stderr, "Could not open source image file %s: %s\n", pszInputFilename, strerror(errno));
@@ -244,36 +248,27 @@ int main(int argc, char ** argv)
     		fprintf(stderr, "Could not allocate memory for image row buffer\n");
 			rdr_close(hc);
 			pngrw_close(hpng);
-			fclose(fOutput);
 			exit(-1);
 		}
-
-		uint32_t		secretBytesRemaining = 0;
-		int				numImgBytesRequired = getNumImageBytesRequired(quality);
-		int				rowBufferIndex = 0;
-		uint8_t			imageBuffer[8];
-		uint8_t			secretByte = 0x00;
-		int				secretBufferIndex = 0;
-		boolean			hasMoreDataToMerge = true;
-		boolean			deferMerge = false;
-		int				deferredMergeIndex = 0;
-		int				deferredBytesLeft = 0;
 
 		while (pngrw_has_more_rows(hpng)) {
 			pngrw_read_row(hpng, rowBuffer, rowBufferLen);
 
-			for (rowBufferIndex = 0;rowBufferIndex < rowBufferLen;rowBufferIndex += numImgBytesRequired) {
-				if (secretBytesRemaining == 0) {
-					if (rdr_has_more_blocks(hc)) {
-						secretBytesRemaining = rdr_read_block(hc, secretDataBlock);
-						secretBufferIndex = 0;
-					}
-					else {
-						hasMoreDataToMerge = false;
-					}
-				}
-
+			for (rowBufferIndex = 0;
+				rowBufferIndex < rowBufferLen;
+				rowBufferIndex += numImgBytesRequired)
+			{
 				if (hasMoreDataToMerge) {
+					if (secretBytesRemaining == 0) {
+						if (rdr_has_more_blocks(hc)) {
+							secretBytesRemaining = rdr_read_block(hc, secretDataBlock);
+							secretBufferIndex = 0;
+						}
+						else {
+							hasMoreDataToMerge = false;
+						}
+					}
+
 					if (rowBufferIndex <= (rowBufferLen - numImgBytesRequired)) {
 						/*
 						** We have sufficient image bytes to do the merge...
@@ -296,12 +291,19 @@ int main(int argc, char ** argv)
 						secretByte = secretDataBlock[secretBufferIndex++];
 						secretBytesRemaining--;
 
-						mergeSecretByte(imageBuffer, numImgBytesRequired, secretByte, quality);
+						mergeSecretByte(
+								imageBuffer, 
+								numImgBytesRequired, 
+								secretByte, 
+								quality);
 
 						/*
 						** Copy the merged bytes back to the row buffer ready for writing...
 						*/
-						memcpy(&rowBuffer[rowBufferIndex], imageBuffer, numImgBytesRequired);
+						memcpy(
+							&rowBuffer[rowBufferIndex], 
+							imageBuffer, 
+							numImgBytesRequired);
 					}
 					else {
 						/*
@@ -316,7 +318,10 @@ int main(int argc, char ** argv)
 						** the index so we know where to start when we
 						** have more data...
 						*/
-						memcpy(imageBuffer, &rowBuffer[rowBufferLen - rowBufferIndex], deferredBytesLeft);
+						memcpy(
+							imageBuffer, 
+							&rowBuffer[rowBufferLen - rowBufferIndex], 
+							deferredBytesLeft);
 
 						deferredMergeIndex = deferredBytesLeft;
 					}
@@ -324,7 +329,7 @@ int main(int argc, char ** argv)
 			}
 
 			if (!deferMerge) {
-				//pngrw_write_row(hpng, rowBuffer, rowBufferLen);
+				pngrw_write_row(hpng, rowBuffer, rowBufferLen);
 			}
 		}
 
@@ -361,7 +366,6 @@ int main(int argc, char ** argv)
     	
     	rdr_close(hc);
 		pngrw_close(hpng);
-    	fclose(fOutput);
     }
     else {
     }

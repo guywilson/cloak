@@ -9,7 +9,7 @@
 #include "cloak_types.h"
 #include "random_block.h"
 #include "utils.h"
-#include "reader.h"
+#include "secretrw.h"
 
 #define MAX_FILE_SIZE					67108864			// 64Mb
 
