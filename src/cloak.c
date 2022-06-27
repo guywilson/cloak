@@ -193,7 +193,7 @@ int main(int argc, char ** argv)
 		algo = aes256;
 	}
     
-	HSECRDR			hsec;
+	HSECRW			hsec;
 	HPNG			hpng;
 	uint8_t *		secretDataBlock;
 	uint8_t *		rowBuffer;
