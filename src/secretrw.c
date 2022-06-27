@@ -13,7 +13,7 @@
 
 #define MAX_FILE_SIZE					67108864			// 64Mb
 
-struct _cloak_handle {
+struct _secret_rdr_handle {
 	encryption_algo		algo;
 	uint8_t *			data;
 	uint32_t			blockSize;
@@ -39,9 +39,9 @@ typedef struct __attribute__((__packed__))
 }
 CLOAK_HEADER;
 
-HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t blockSize, encryption_algo a)
+HSECRDR rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t blockSize, encryption_algo a)
 {
-	HCLOAK			hc;
+	HSECRDR			hsec;
 
 	if (blockSize == 0) {
 		fprintf(stderr, "Block size must be greater than 0\n");
@@ -52,28 +52,28 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 		return NULL;
 	}
 
-	hc = (HCLOAK)malloc(sizeof(struct _cloak_handle));
+	hsec = (HSECRDR)malloc(sizeof(struct _secret_rdr_handle));
 
-	if (hc == NULL) {
+	if (hsec == NULL) {
 		fprintf(stderr, "Failed to allocate memory for cloak handle\n");
 		return NULL;
 	}
 
-	hc->blockSize = blockSize;
-	hc->algo = a;
-	hc->counter = 0;
-	hc->blockCounter = 0;
+	hsec->blockSize = blockSize;
+	hsec->algo = a;
+	hsec->counter = 0;
+	hsec->blockCounter = 0;
 
-	hc->fptrKey = NULL;
+	hsec->fptrKey = NULL;
 
-	hc->fptrInput = fopen(pszFilename, "rb");
+	hsec->fptrInput = fopen(pszFilename, "rb");
 
-	if (hc->fptrInput == NULL) {
+	if (hsec->fptrInput == NULL) {
 		fprintf(stderr, "Failed to open file reader with file %s: %s\n", pszFilename, strerror(errno));
 		return NULL;
 	}
 
-	hc->fileLength = getFileSize(hc->fptrInput);
+	hsec->fileLength = getFileSize(hsec->fptrInput);
 
 	/*
 	** The AES-256 data frame consists of:
@@ -82,7 +82,7 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 	** 2. IV block, typically 128-bit, 16 bytes
 	** 3. Encryted data n blocks long
 	*/
-	if (hc->algo == aes256) {
+	if (hsec->algo == aes256) {
 		int				err;
 		int				index = 0;
 		uint32_t		blklen;
@@ -90,36 +90,36 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 		uint8_t *		iv;
 		CLOAK_HEADER	header;
 
-		if (hc->fileLength > MAX_FILE_SIZE) {
-			fprintf(stderr, "File length %u is over the maximum allowed\n", hc->fileLength);
-			fclose(hc->fptrInput);
+		if (hsec->fileLength > MAX_FILE_SIZE) {
+			fprintf(stderr, "File length %u is over the maximum allowed\n", hsec->fileLength);
+			fclose(hsec->fptrInput);
 			return NULL;
 		}
 
 		err = gcry_cipher_open(
-							&hc->cipherHandle,
+							&hsec->cipherHandle,
 							GCRY_CIPHER_RIJNDAEL256,
 							GCRY_CIPHER_MODE_CBC,
 							0);
 
 		if (err) {
 			fprintf(stderr, "Failed to open cipher with gcrypt\n");
-			fclose(hc->fptrInput);
-			free(hc);
+			fclose(hsec->fptrInput);
+			free(hsec);
 			return NULL;
 		}
 
 		blklen = gcry_cipher_get_algo_blklen(GCRY_CIPHER_RIJNDAEL256);
 
 		err = gcry_cipher_setkey(
-							hc->cipherHandle,
+							hsec->cipherHandle,
 							(const void *)key,
 							keyLength);
 
 		if (err) {
 			fprintf(stderr, "Failed to set key with gcrypt: %s/%s\n", gcry_strerror(err), gcry_strsource(err));
-			fclose(hc->fptrInput);
-			free(hc);
+			fclose(hsec->fptrInput);
+			free(hsec);
 			return NULL;
 		}
 
@@ -127,195 +127,195 @@ HCLOAK rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t 
 
 		if (iv == NULL) {
 			fprintf(stderr, "Failed to allocate memory for IV of size %u\n", blockSize);
-			fclose(hc->fptrInput);
-			free(hc);
+			fclose(hsec->fptrInput);
+			free(hsec);
 			return NULL;
 		}
 
 		gcry_randomize(iv, blklen, GCRY_STRONG_RANDOM);
 
 		err = gcry_cipher_setiv(
-							hc->cipherHandle,
+							hsec->cipherHandle,
 							iv,
 							blklen);
 
 		if (err) {
 			fprintf(stderr, "Failed to set IV with gcrypt\n");
 			free(iv);
-			fclose(hc->fptrInput);
-			free(hc);
+			fclose(hsec->fptrInput);
+			free(hsec);
 			return NULL;
 		}
 
-		hc->encryptionBufferLength = hc->fileLength + (blklen - (hc->fileLength % blklen));
-		hc->dataFrameLength = hc->encryptionBufferLength + sizeof(CLOAK_HEADER) + blklen;
+		hsec->encryptionBufferLength = hsec->fileLength + (blklen - (hsec->fileLength % blklen));
+		hsec->dataFrameLength = hsec->encryptionBufferLength + sizeof(CLOAK_HEADER) + blklen;
 
-		hc->data = (uint8_t *)malloc(hc->dataFrameLength);
+		hsec->data = (uint8_t *)malloc(hsec->dataFrameLength);
 
-		if (hc->data == NULL) {
-			fprintf(stderr, "Failed to allocate memory for data of size %u\n", hc->dataFrameLength);
+		if (hsec->data == NULL) {
+			fprintf(stderr, "Failed to allocate memory for data of size %u\n", hsec->dataFrameLength);
 			free(iv);
-			fclose(hc->fptrInput);
-			free(hc);
+			fclose(hsec->fptrInput);
+			free(hsec);
 			return NULL;
 		}
 
-		header.fileLength = hc->fileLength;
-		header.dataFrameLength = hc->dataFrameLength;
-		header.encryptionBufferLength = hc->encryptionBufferLength;
+		header.fileLength = hsec->fileLength;
+		header.dataFrameLength = hsec->dataFrameLength;
+		header.encryptionBufferLength = hsec->encryptionBufferLength;
 
 		/*
 		** XOR the header with random data...
 		*/
 		xorBuffer(&header, &random_block[2048], sizeof(CLOAK_HEADER));
 
-		memcpy(&hc->data[index], &header, sizeof(CLOAK_HEADER));
+		memcpy(&hsec->data[index], &header, sizeof(CLOAK_HEADER));
 		index += sizeof(CLOAK_HEADER);
 
-		memcpy(&hc->data[index], iv, blklen);
+		memcpy(&hsec->data[index], iv, blklen);
 		index += blklen;
 
 		free(iv);
 
-		bytesRead = fread(&hc->data[index], 1, hc->fileLength, hc->fptrInput);
+		bytesRead = fread(&hsec->data[index], 1, hsec->fileLength, hsec->fptrInput);
 
-		if (bytesRead < hc->fileLength) {
-			fprintf(stderr, "Failed to read file %s, expected %u bytes, got %u bytes\n", pszFilename, hc->fileLength, bytesRead);
-			fclose(hc->fptrInput);
-			free(hc->data);
-			free(hc);
+		if (bytesRead < hsec->fileLength) {
+			fprintf(stderr, "Failed to read file %s, expected %u bytes, got %u bytes\n", pszFilename, hsec->fileLength, bytesRead);
+			fclose(hsec->fptrInput);
+			free(hsec->data);
+			free(hsec);
 			return NULL;
 		}
 
-		fclose(hc->fptrInput);
-		hc->fptrInput = NULL;
+		fclose(hsec->fptrInput);
+		hsec->fptrInput = NULL;
 
 		/*
 		** Fill any remaining bytes with random data...
 		*/
 		memcpy(
-			&hc->data[index + hc->fileLength], 
+			&hsec->data[index + hsec->fileLength], 
 			random_block, 
-			(hc->dataFrameLength - hc->fileLength - index));
+			(hsec->dataFrameLength - hsec->fileLength - index));
 
 		err = gcry_cipher_encrypt(
-					hc->cipherHandle, 
-					&hc->data[index], 
-					hc->encryptionBufferLength, 
+					hsec->cipherHandle, 
+					&hsec->data[index], 
+					hsec->encryptionBufferLength, 
 					NULL, 
 					0);
 
 		if (err) {
 			fprintf(stderr, "Failed to encrypt with gcrypt\n");
-			free(hc);
+			free(hsec);
 			return NULL;
 		}
 
-		gcry_cipher_close(hc->cipherHandle);
+		gcry_cipher_close(hsec->cipherHandle);
 	}
 	else {
-		hc->encryptionBufferLength = hc->fileLength + (hc->blockSize - (hc->fileLength % hc->blockSize));
+		hsec->encryptionBufferLength = hsec->fileLength + (hsec->blockSize - (hsec->fileLength % hsec->blockSize));
 	}
 
-	return hc;
+	return hsec;
 }
 
-int rdr_set_keystream_file(HCLOAK hc, char * pszKeystreamFilename)
+int rdr_set_keystream_file(HSECRDR hsec, char * pszKeystreamFilename)
 {
 	uint32_t		keyLength;
 
-	hc->fptrKey = fopen(pszKeystreamFilename, "rb");
+	hsec->fptrKey = fopen(pszKeystreamFilename, "rb");
 
-	if (hc->fptrKey == NULL) {
+	if (hsec->fptrKey == NULL) {
 		fprintf(stderr, "Failed to open keystream file %s: %s\n", pszKeystreamFilename, strerror(errno));
 		return -1;
 	}
 
-	keyLength = getFileSize(hc->fptrKey);
+	keyLength = getFileSize(hsec->fptrKey);
 
-	if (keyLength < hc->dataFrameLength) {
-		fprintf(stderr, "Keystream file must be at least %u bytes long\n", hc->dataFrameLength);
-		fclose(hc->fptrKey);
+	if (keyLength < hsec->dataFrameLength) {
+		fprintf(stderr, "Keystream file must be at least %u bytes long\n", hsec->dataFrameLength);
+		fclose(hsec->fptrKey);
 		return -1;
 	}
 
 	return 0;
 }
 
-void rdr_close(HCLOAK hc)
+void rdr_close(HSECRDR hsec)
 {
-	if (hc->fptrInput != NULL) {
-		fclose(hc->fptrInput);
+	if (hsec->fptrInput != NULL) {
+		fclose(hsec->fptrInput);
 	}
 
-	if (hc->fptrKey != NULL) {
-		fclose(hc->fptrKey);
+	if (hsec->fptrKey != NULL) {
+		fclose(hsec->fptrKey);
 	}
 
-	//free(hc->data);
-	free(hc);
+	//free(hsec->data);
+	free(hsec);
 }
 
-uint32_t rdr_get_block_size(HCLOAK hc)
+uint32_t rdr_get_block_size(HSECRDR hsec)
 {
-	return hc->blockSize;
+	return hsec->blockSize;
 }
 
-uint32_t rdr_get_data_length(HCLOAK hc)
+uint32_t rdr_get_data_length(HSECRDR hsec)
 {
-	return hc->dataFrameLength;
+	return hsec->dataFrameLength;
 }
 
-uint32_t rdr_get_file_length(HCLOAK hc)
+uint32_t rdr_get_file_length(HSECRDR hsec)
 {
-	return hc->fileLength;
+	return hsec->fileLength;
 }
 
-boolean rdr_has_more_blocks(HCLOAK hc)
+boolean rdr_has_more_blocks(HSECRDR hsec)
 {
-	return (hc->counter < hc->dataFrameLength) ? true : false;
+	return (hsec->counter < hsec->dataFrameLength) ? true : false;
 }
 
-uint32_t rdr_read_block(HCLOAK hc, uint8_t * buffer)
+uint32_t rdr_read_block(HSECRDR hsec, uint8_t * buffer)
 {
 	uint32_t			bytesRead;
 
-	memcpy(buffer, random_block, hc->blockSize);
+	memcpy(buffer, random_block, hsec->blockSize);
 
-	if (hc->algo == aes256) {
-		bytesRead = ((hc->dataFrameLength - hc->counter) >= hc->blockSize ? hc->blockSize : (hc->dataFrameLength - hc->counter));
+	if (hsec->algo == aes256) {
+		bytesRead = ((hsec->dataFrameLength - hsec->counter) >= hsec->blockSize ? hsec->blockSize : (hsec->dataFrameLength - hsec->counter));
 		
-		memcpy(buffer, hc->data, bytesRead);
-		hc->data += bytesRead;
+		memcpy(buffer, hsec->data, bytesRead);
+		hsec->data += bytesRead;
 	}
 	else {
-		if (hc->blockCounter == 0) {
+		if (hsec->blockCounter == 0) {
 			CLOAK_HEADER	header;
 
-			header.fileLength = hc->fileLength;
-			header.dataFrameLength = hc->dataFrameLength;
+			header.fileLength = hsec->fileLength;
+			header.dataFrameLength = hsec->dataFrameLength;
 
 			memcpy(buffer, &header, sizeof(CLOAK_HEADER));
 
 			bytesRead = sizeof(CLOAK_HEADER);
-			bytesRead += fread(&buffer[sizeof(CLOAK_HEADER)], 1, (hc->blockSize - sizeof(CLOAK_HEADER)), hc->fptrInput);
+			bytesRead += fread(&buffer[sizeof(CLOAK_HEADER)], 1, (hsec->blockSize - sizeof(CLOAK_HEADER)), hsec->fptrInput);
 		}
 		else {
-			bytesRead = fread(buffer, 1, hc->blockSize, hc->fptrInput);
+			bytesRead = fread(buffer, 1, hsec->blockSize, hsec->fptrInput);
 		}
 
-		if (hc->algo == xor) {
+		if (hsec->algo == xor) {
 			uint32_t		index = 0;
 
-			while (index < hc->blockSize) {
-				buffer[index] = buffer[index] ^ (uint8_t)fgetc(hc->fptrKey);
+			while (index < hsec->blockSize) {
+				buffer[index] = buffer[index] ^ (uint8_t)fgetc(hsec->fptrKey);
 				index++;
 			}
 		}
 	}
 
-	hc->blockCounter++;
-	hc->counter += bytesRead;
+	hsec->blockCounter++;
+	hsec->counter += bytesRead;
 
 	return bytesRead;
 }

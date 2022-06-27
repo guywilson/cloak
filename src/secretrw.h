@@ -4,8 +4,8 @@
 #ifndef __INCL_READER
 #define __INCL_READER
 
-struct _cloak_handle;
-typedef struct _cloak_handle * HCLOAK;
+struct _secret_rdr_handle;
+typedef struct _secret_rdr_handle * HSECRDR;
 
 typedef enum {
 	xor,
@@ -14,13 +14,13 @@ typedef enum {
 }
 encryption_algo;
 
-HCLOAK      rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t blockSize, encryption_algo a);
-int         rdr_set_keystream_file(HCLOAK hc, char * pszKeystreamFilename);
-void        rdr_close(HCLOAK hc);
-uint32_t    rdr_get_block_size(HCLOAK hc);
-uint32_t    rdr_get_data_length(HCLOAK hc);
-uint32_t    rdr_get_file_length(HCLOAK hc);
-boolean     rdr_has_more_blocks(HCLOAK hc);
-uint32_t    rdr_read_block(HCLOAK hc, uint8_t * buffer);
+HSECRDR      rdr_open(char * pszFilename, uint8_t * key, uint32_t keyLength, uint32_t blockSize, encryption_algo a);
+int         rdr_set_keystream_file(HSECRDR hsec, char * pszKeystreamFilename);
+void        rdr_close(HSECRDR hsec);
+uint32_t    rdr_get_block_size(HSECRDR hsec);
+uint32_t    rdr_get_data_length(HSECRDR hsec);
+uint32_t    rdr_get_file_length(HSECRDR hsec);
+boolean     rdr_has_more_blocks(HSECRDR hsec);
+uint32_t    rdr_read_block(HSECRDR hsec, uint8_t * buffer);
 
 #endif

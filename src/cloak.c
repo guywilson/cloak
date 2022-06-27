@@ -193,7 +193,7 @@ int main(int argc, char ** argv)
 		algo = aes256;
 	}
     
-	HCLOAK			hc;
+	HSECRDR			hsec;
 	HPNG			hpng;
 	uint8_t *		secretDataBlock;
 	uint8_t *		rowBuffer;
@@ -214,22 +214,22 @@ int main(int argc, char ** argv)
 		key = (uint8_t *)random_block;
 		keyLength = 32U;
     	
-		hc = rdr_open(pszInputFilename, key, keyLength, BLOCK_SIZE, algo);
+		hsec = rdr_open(pszInputFilename, key, keyLength, BLOCK_SIZE, algo);
 
-    	if (hc == NULL) {
+    	if (hsec == NULL) {
     		fprintf(stderr, "Could not open input file %s: %s\n", pszInputFilename, strerror(errno));
     		exit(-1);
     	}
     	
 		if (algo == xor) {
-			rdr_set_keystream_file(hc, pszKeystreamFilename);
+			rdr_set_keystream_file(hsec, pszKeystreamFilename);
 		}
 
     	secretDataBlock = (uint8_t *)malloc(BLOCK_SIZE);
     	
     	if (secretDataBlock == NULL) {
     		fprintf(stderr, "Could not allocate memory for input block\n");
-			rdr_close(hc);
+			rdr_close(hsec);
 			exit(-1);
     	}
     	
@@ -246,7 +246,7 @@ int main(int argc, char ** argv)
 
 		if (rowBuffer == NULL) {
     		fprintf(stderr, "Could not allocate memory for image row buffer\n");
-			rdr_close(hc);
+			rdr_close(hsec);
 			pngrw_close(hpng);
 			exit(-1);
 		}
@@ -260,8 +260,8 @@ int main(int argc, char ** argv)
 			{
 				if (hasMoreDataToMerge) {
 					if (secretBytesRemaining == 0) {
-						if (rdr_has_more_blocks(hc)) {
-							secretBytesRemaining = rdr_read_block(hc, secretDataBlock);
+						if (rdr_has_more_blocks(hsec)) {
+							secretBytesRemaining = rdr_read_block(hsec, secretDataBlock);
 							secretBufferIndex = 0;
 						}
 						else {
@@ -333,8 +333,8 @@ int main(int argc, char ** argv)
 			}
 		}
 
-		while (rdr_has_more_blocks(hc)) {
-			bytesRead = rdr_read_block(hc, secretDataBlock);
+		while (rdr_has_more_blocks(hsec)) {
+			bytesRead = rdr_read_block(hsec, secretDataBlock);
 
 			printf("\nRead block %u bytes long\n", bytesRead);
 
@@ -364,7 +364,7 @@ int main(int argc, char ** argv)
 
 		free(secretDataBlock);
     	
-    	rdr_close(hc);
+    	rdr_close(hsec);
 		pngrw_close(hpng);
     }
     else {
