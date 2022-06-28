@@ -2,6 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <ctype.h>
+
+#ifdef _WIN32
+#include <conio.h>
+#else
+#include <termios.h>
+#endif
 
 #include "random_block.h"
 
@@ -39,6 +46,70 @@ char * getFileExtension(char * pszFilename)
 	}
 
 	return pszExt;		
+}
+
+void hexDump(void * buffer, uint32_t bufferLen)
+{
+    int         i;
+    int         j = 0;
+    uint8_t *   buf;
+    static char szASCIIBuf[17];
+
+    buf = (uint8_t *)buffer;
+
+    for (i = 0;i < bufferLen;i++) {
+        if ((i % 16) == 0) {
+            if (i != 0) {
+                szASCIIBuf[j] = 0;
+                j = 0;
+
+                printf("  [%s]", szASCIIBuf);
+            }
+                
+            printf("\n%08X\t", i);
+        }
+
+        if ((i % 2) == 0 && (i % 16) > 0) {
+            printf(" ");
+        }
+
+        printf("%02X", buf[i]);
+        szASCIIBuf[j++] = isalnum(buf[i]) ? buf[i] : '.';
+    }
+
+    /*
+    ** Print final ASCII block...
+    */
+    szASCIIBuf[j] = 0;
+    printf("  [%s]\n", szASCIIBuf);
+}
+
+int __getch()
+{
+	int		ch;
+
+#ifndef _WIN32
+	struct termios current;
+	struct termios original;
+
+	tcgetattr(fileno(stdin), &original); /* grab old terminal i/o settings */
+	current = original; /* make new settings same as old settings */
+	current.c_lflag &= ~ICANON; /* disable buffered i/o */
+	current.c_lflag &= ~ECHO; /* set echo mode */
+	tcsetattr(fileno(stdin), TCSANOW, &current); /* use these new terminal i/o settings now */
+#endif
+
+#ifdef _WIN32
+    ch = _getch();
+#else
+    ch = getchar();
+#endif
+
+#ifndef _WIN32
+	tcsetattr(0, TCSANOW, &original);
+#endif
+
+    return ch;
 }
 
 void wipeBuffer(void * b, uint32_t bufferLen)

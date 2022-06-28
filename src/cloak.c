@@ -200,11 +200,11 @@ int main(int argc, char ** argv)
 	uint8_t			imageBuffer[8];
 	uint8_t			secretByte = 0x00;
 	uint32_t		rowBufferLen;
-	uint32_t		bytesRead;
 	uint32_t		secretBytesRemaining = 0;
 	boolean			hasMoreDataToMerge = true;
 	boolean			deferMerge = false;
-	int				numImgBytesRequired = getNumImageBytesRequired(quality);
+	int				numImgBytesRequired = 0;
+	int				numImgBytesUsed = 0;
 	int				rowBufferIndex = 0;
 	int				secretBufferIndex = 0;
 	int				deferredMergeIndex = 0;
@@ -251,18 +251,28 @@ int main(int argc, char ** argv)
 			exit(-1);
 		}
 
+		numImgBytesRequired = getNumImageBytesRequired(quality);
+
 		while (pngrw_has_more_rows(hpng)) {
-			pngrw_read_row(hpng, rowBuffer, rowBufferLen);
+			if (pngrw_read_row(hpng, rowBuffer, rowBufferLen)) {
+				break;
+			}
+
+			printf("\nRead PNG row %u bytes long\n", rowBufferLen);
+			hexDump(rowBuffer, rowBufferLen);
 
 			for (rowBufferIndex = 0;
 				rowBufferIndex < rowBufferLen;
-				rowBufferIndex += numImgBytesRequired)
+				rowBufferIndex += numImgBytesUsed)
 			{
 				if (hasMoreDataToMerge) {
 					if (secretBytesRemaining == 0) {
 						if (rdr_has_more_blocks(hsec)) {
 							secretBytesRemaining = rdr_read_block(hsec, secretDataBlock);
 							secretBufferIndex = 0;
+
+							printf("\nRead secret block %u bytes long\n", secretBytesRemaining);
+							hexDump(secretDataBlock, secretBytesRemaining);
 						}
 						else {
 							hasMoreDataToMerge = false;
@@ -277,7 +287,14 @@ int main(int argc, char ** argv)
 							memcpy(
 								&imageBuffer[deferredMergeIndex], 
 								&rowBuffer[rowBufferIndex], 
-								(numImgBytesRequired - deferredBytesLeft));
+								deferredBytesLeft);
+
+							/*
+							** Temporarily set this to how many bytes we've 
+							** just copied, we will reset it the next time 
+							** around...
+							*/
+							numImgBytesUsed = deferredBytesLeft;
 
 							deferMerge = false;
 						}
@@ -286,6 +303,8 @@ int main(int argc, char ** argv)
 								imageBuffer, 
 								&rowBuffer[rowBufferIndex], 
 								numImgBytesRequired);
+
+							numImgBytesUsed  = numImgBytesRequired;
 						}
 
 						secretByte = secretDataBlock[secretBufferIndex++];
@@ -313,6 +332,9 @@ int main(int argc, char ** argv)
 						deferMerge = true;
 						deferredBytesLeft = rowBufferLen - rowBufferIndex;
 
+						printf("Need to defer merge, %d bytes left in row buffer\n", deferredBytesLeft);
+						__getch();
+
 						/*
 						** Copy what is left in the row buffer and save
 						** the index so we know where to start when we
@@ -320,10 +342,21 @@ int main(int argc, char ** argv)
 						*/
 						memcpy(
 							imageBuffer, 
-							&rowBuffer[rowBufferLen - rowBufferIndex], 
-							deferredBytesLeft);
+							&rowBuffer[rowBufferIndex], 
+							(numImgBytesRequired - deferredBytesLeft));
 
-						deferredMergeIndex = deferredBytesLeft;
+						deferredMergeIndex = 
+									numImgBytesRequired - 
+									deferredBytesLeft;
+
+						/*
+						** Temporarily set this to how many bytes we've 
+						** just copied, we will reset it the next time 
+						** around...
+						*/
+						numImgBytesUsed = 
+									numImgBytesRequired - 
+									deferredBytesLeft;
 					}
 				}
 			}
@@ -333,36 +366,8 @@ int main(int argc, char ** argv)
 			}
 		}
 
-		while (rdr_has_more_blocks(hsec)) {
-			bytesRead = rdr_read_block(hsec, secretDataBlock);
-
-			printf("\nRead block %u bytes long\n", bytesRead);
-
-			for (i = 0;i < bytesRead;i += 16) {
-				printf(
-					"%08X\t%02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X %02X%02X\n", 
-					i,
-					secretDataBlock[i], 
-					secretDataBlock[i+1], 
-					secretDataBlock[i+2], 
-					secretDataBlock[i+3], 
-					secretDataBlock[i+4], 
-					secretDataBlock[i+5], 
-					secretDataBlock[i+6], 
-					secretDataBlock[i+7],
-					secretDataBlock[i+8],
-					secretDataBlock[i+9],
-					secretDataBlock[i+10],
-					secretDataBlock[i+11],
-					secretDataBlock[i+12],
-					secretDataBlock[i+13],
-					secretDataBlock[i+14],
-					secretDataBlock[i+15]
-				);
-			}
-		}
-
 		free(secretDataBlock);
+		free(rowBuffer);
     	
     	rdr_close(hsec);
 		pngrw_close(hpng);

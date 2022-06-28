@@ -217,7 +217,7 @@ int pngrw_write_row(HPNG hpng, uint8_t * rowBuffer, uint32_t bufferLength)
         return -1;
     }
 
-    png_write_row(hpng->png_ptr_read, rowBuffer);
+    png_write_row(hpng->png_ptr_write, rowBuffer);
 
     return 0;
 }
