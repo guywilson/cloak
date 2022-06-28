@@ -63,7 +63,7 @@ void hexDump(void * buffer, uint32_t bufferLen)
                 szASCIIBuf[j] = 0;
                 j = 0;
 
-                printf("  [%s]", szASCIIBuf);
+                printf("  |%s|", szASCIIBuf);
             }
                 
             printf("\n%08X\t", i);
@@ -81,7 +81,7 @@ void hexDump(void * buffer, uint32_t bufferLen)
     ** Print final ASCII block...
     */
     szASCIIBuf[j] = 0;
-    printf("  [%s]\n", szASCIIBuf);
+    printf("  |%s|\n", szASCIIBuf);
 }
 
 int __getch()

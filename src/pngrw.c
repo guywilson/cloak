@@ -196,6 +196,27 @@ boolean pngrw_has_more_rows(HPNG hpng)
     return ((hpng->rowCounter < hpng->height) ? true : false);
 }
 
+uint32_t pngrw_get_data_length(HPNG hpng)
+{
+    return (uint32_t)(hpng->width * hpng->height * hpng->channels);
+}
+
+uint32_t pngrw_read(HPNG hpng, uint8_t * data, uint32_t dataLength)
+{
+    uint32_t        index = 0;
+
+    while (pngrw_has_more_rows(hpng)) {
+        if (pngrw_read_row(hpng, &data[index], (dataLength - index))) {
+            fprintf(stderr, "Failed to read row...\n");
+            exit(-1);
+        }
+
+        index += pngrw_get_row_buffer_len(hpng);
+    }
+
+    return index;
+}
+
 int pngrw_read_row(HPNG hpng, uint8_t * rowBuffer, uint32_t bufferLength)
 {
     if (bufferLength < pngrw_get_row_buffer_len(hpng)) {

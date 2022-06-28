@@ -97,6 +97,13 @@ uint8_t extractSecretByte(uint8_t * imageBytes, uint32_t numImageBytes, merge_qu
 	return secretByte;
 }
 
+uint32_t getKey(uint8_t * keyBuffer, uint32_t keyBufferLength)
+{
+	memcpy(keyBuffer, random_block, 32U);
+
+	return 32U;
+}
+
 int main(int argc, char ** argv)
 {
 	int				i;
@@ -106,6 +113,7 @@ int main(int argc, char ** argv)
 	char *			pszKeystreamFilename = NULL;
 	char *			pszOutputFilename = NULL;
 	char *			pszSourceFilename = NULL;
+	const uint32_t	keyBufferLen = 64U;
 	uint8_t *		key;
 	uint32_t		keyLength;
 	boolean			isMerge = false;
@@ -193,14 +201,26 @@ int main(int argc, char ** argv)
 		algo = aes256;
 	}
     
+	key = (uint8_t *)malloc(keyBufferLen);
+
+	if (key == NULL) {
+		fprintf(stderr, "Failed to allocate memory for key\n");
+		exit(-1);
+	}
+
+	keyLength = getKey(key, keyBufferLen);
+
 	HSECRW			hsec;
 	HPNG			hpng;
 	uint8_t *		secretDataBlock;
 	uint8_t *		rowBuffer;
+	uint8_t *		imageData;
 	uint8_t			imageBuffer[8];
 	uint8_t			secretByte = 0x00;
 	uint32_t		rowBufferLen;
+	uint32_t		imageDataLen;
 	uint32_t		secretBytesRemaining = 0;
+	uint32_t		imageBytesRead;
 	boolean			hasMoreDataToMerge = true;
 	boolean			deferMerge = false;
 	int				numImgBytesRequired = 0;
@@ -211,9 +231,6 @@ int main(int argc, char ** argv)
 	int				deferredBytesLeft = 0;
 
     if (isMerge) {
-		key = (uint8_t *)random_block;
-		keyLength = 32U;
-    	
 		hsec = rdr_open(pszInputFilename, key, keyLength, BLOCK_SIZE, algo);
 
     	if (hsec == NULL) {
@@ -240,6 +257,21 @@ int main(int argc, char ** argv)
     		exit(-1);
 		}
 
+		imageDataLen = pngrw_get_data_length(hpng);
+
+		imageData = (uint8_t *)malloc(imageDataLen);
+
+		if (imageData == NULL) {
+    		fprintf(stderr, "Could not allocate memory for image data\n");
+			rdr_close(hsec);
+			pngrw_close(hpng);
+			exit(-1);
+		}
+
+		imageBytesRead = pngrw_read(hpng, imageData, imageDataLen);
+
+		printf("Read %u bytes of image data, expected %u bytes\n", imageBytesRead, imageDataLen);
+
 		rowBufferLen = pngrw_get_row_buffer_len(hpng);
 
 		rowBuffer = (uint8_t *)malloc(rowBufferLen);
@@ -258,8 +290,8 @@ int main(int argc, char ** argv)
 				break;
 			}
 
-			printf("\nRead PNG row %u bytes long\n", rowBufferLen);
-			hexDump(rowBuffer, rowBufferLen);
+			// printf("\nRead PNG row %u bytes long\n", rowBufferLen);
+			// hexDump(rowBuffer, rowBufferLen);
 
 			for (rowBufferIndex = 0;
 				rowBufferIndex < rowBufferLen;
@@ -284,10 +316,25 @@ int main(int argc, char ** argv)
 						** We have sufficient image bytes to do the merge...
 						*/
 						if (deferMerge) {
+							printf("Copying deferred %d bytes at index %d\n", deferredBytesLeft, deferredMergeIndex);
+							__getch();
+
 							memcpy(
 								&imageBuffer[deferredMergeIndex], 
 								&rowBuffer[rowBufferIndex], 
 								deferredBytesLeft);
+
+							printf("Complete image buffer (post defer):\n");
+							printf(
+								"%02X%02X %02X%02X %02X%02X %02X%02X\n", 
+								imageBuffer[0], 
+								imageBuffer[1], 
+								imageBuffer[2], 
+								imageBuffer[3], 
+								imageBuffer[4], 
+								imageBuffer[5], 
+								imageBuffer[6], 
+								imageBuffer[7]);
 
 							/*
 							** Temporarily set this to how many bytes we've 
@@ -304,7 +351,7 @@ int main(int argc, char ** argv)
 								&rowBuffer[rowBufferIndex], 
 								numImgBytesRequired);
 
-							numImgBytesUsed  = numImgBytesRequired;
+							numImgBytesUsed = numImgBytesRequired;
 						}
 
 						secretByte = secretDataBlock[secretBufferIndex++];
@@ -323,6 +370,8 @@ int main(int argc, char ** argv)
 							&rowBuffer[rowBufferIndex], 
 							imageBuffer, 
 							numImgBytesRequired);
+
+						memset(imageBuffer, 0x00, numImgBytesRequired);
 					}
 					else {
 						/*
@@ -330,9 +379,10 @@ int main(int argc, char ** argv)
 						** until we get some more... 
 						*/
 						deferMerge = true;
-						deferredBytesLeft = rowBufferLen - rowBufferIndex;
+						deferredBytesLeft = numImgBytesRequired - (rowBufferLen - rowBufferIndex);
 
-						printf("Need to defer merge, %d bytes left in row buffer\n", deferredBytesLeft);
+						printf("rowBufferLen: %d, rowBufferIndex: %d\n", rowBufferLen, rowBufferIndex);
+						printf("Need to defer merge, copying %d bytes and deferring %d bytes\n", (numImgBytesRequired - deferredBytesLeft), deferredBytesLeft);
 						__getch();
 
 						/*
@@ -374,4 +424,6 @@ int main(int argc, char ** argv)
     }
     else {
     }
+
+	secureFree(key, keyBufferLen);
 }
