@@ -205,6 +205,8 @@ uint32_t pngrw_read(HPNG hpng, uint8_t * data, uint32_t dataLength)
 {
     uint32_t        index = 0;
 
+    hpng->rowCounter = 0;
+
     while (pngrw_has_more_rows(hpng)) {
         if (pngrw_read_row(hpng, &data[index], (dataLength - index))) {
             fprintf(stderr, "Failed to read row...\n");
@@ -240,5 +242,25 @@ int pngrw_write_row(HPNG hpng, uint8_t * rowBuffer, uint32_t bufferLength)
 
     png_write_row(hpng->png_ptr_write, rowBuffer);
 
+    hpng->rowCounter++;
+
     return 0;
+}
+
+uint32_t pngrw_write(HPNG hpng, uint8_t * data, uint32_t dataLength)
+{
+    uint32_t        index = 0;
+
+    hpng->rowCounter = 0;
+
+    while (pngrw_has_more_rows(hpng)) {
+        if (pngrw_write_row(hpng, &data[index], (dataLength - index))) {
+            fprintf(stderr, "Failed to write row...\n");
+            exit(-1);
+        }
+
+        index += pngrw_get_row_buffer_len(hpng);
+    }
+
+    return index;
 }

@@ -15,5 +15,6 @@ boolean     pngrw_has_more_rows(HPNG hpng);
 uint32_t    pngrw_read(HPNG hpng, uint8_t * data, uint32_t dataLength);
 int         pngrw_read_row(HPNG hpng, uint8_t * rowBuffer, uint32_t bufferLength);
 int         pngrw_write_row(HPNG hpng, uint8_t * rowBuffer, uint32_t bufferLength);
+uint32_t    pngrw_write(HPNG hpng, uint8_t * data, uint32_t dataLength);
 
 #endif
