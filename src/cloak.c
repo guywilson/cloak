@@ -21,8 +21,6 @@ typedef enum {
 }
 merge_quality;
 
-#define BLOCK_SIZE								64
-
 
 void printUsage()
 {
@@ -216,6 +214,7 @@ int main(int argc, char ** argv)
 	uint8_t *		imageData;
 	uint8_t			imageBuffer[8];
 	uint8_t			secretByte = 0x00;
+	uint32_t		secretDataBlockLen;
 	uint32_t		imageDataLen;
 	uint32_t		secretBytesRemaining = 0;
 	uint32_t		imageBytesRead;
@@ -224,18 +223,23 @@ int main(int argc, char ** argv)
 	int				secretBufferIndex = 0;
 
     if (isMerge) {
-		hsec = rdr_open(pszInputFilename, key, keyLength, BLOCK_SIZE, algo);
+		hsec = rdr_open(pszInputFilename, algo);
 
     	if (hsec == NULL) {
     		fprintf(stderr, "Could not open input file %s: %s\n", pszInputFilename, strerror(errno));
     		exit(-1);
     	}
     	
-		if (algo == xor) {
+		if (algo == aes256) {
+			rdr_encrypt_aes256(hsec, key, keyLength);
+		}
+		else if (algo == xor) {
 			rdr_set_keystream_file(hsec, pszKeystreamFilename);
 		}
 
-    	secretDataBlock = (uint8_t *)malloc(BLOCK_SIZE);
+		secretDataBlockLen = rdr_get_block_size(hsec);
+
+    	secretDataBlock = (uint8_t *)malloc(secretDataBlockLen);
     	
     	if (secretDataBlock == NULL) {
     		fprintf(stderr, "Could not allocate memory for input block\n");
@@ -268,7 +272,7 @@ int main(int argc, char ** argv)
 		numImgBytesRequired = getNumImageBytesRequired(quality);
 
 		while (rdr_has_more_blocks(hsec)) {
-			secretBytesRemaining = rdr_read_block(hsec, secretDataBlock);
+			secretBytesRemaining = rdr_read_encrypted_block(hsec, secretDataBlock, secretDataBlockLen);
 			secretBufferIndex = 0;
 
 			printf("\nRead secret block %u bytes long\n", secretBytesRemaining);
@@ -310,6 +314,26 @@ int main(int argc, char ** argv)
 		pngrw_close(hpng);
     }
     else {
+		hpng = pngrw_open(pszSourceFilename, NULL);
+
+		if (hpng == NULL) {
+    		fprintf(stderr, "Could not open source image file %s: %s\n", pszInputFilename, strerror(errno));
+    		exit(-1);
+		}
+
+		imageDataLen = pngrw_get_data_length(hpng);
+
+		imageData = (uint8_t *)malloc(imageDataLen);
+
+		if (imageData == NULL) {
+    		fprintf(stderr, "Could not allocate memory for image data\n");
+			pngrw_close(hpng);
+			exit(-1);
+		}
+
+		imageBytesRead = pngrw_read(hpng, imageData, imageDataLen);
+
+		printf("Read %u bytes of image data, expected %u bytes\n", imageBytesRead, imageDataLen);
     }
 
 	secureFree(key, keyBufferLen);
