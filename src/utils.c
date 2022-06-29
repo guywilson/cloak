@@ -153,6 +153,7 @@ void xorBuffer(void * target, void * source, size_t length)
     s = (uint8_t *)source;
 
     for (c = 0;c < length;c++) {
+        printf("XOR byte 0x%02X with byte 0x%02X\n", t[c], s[c]);
         t[c] = t[c] ^ s[c];
     }
 }

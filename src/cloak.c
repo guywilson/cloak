@@ -33,7 +33,8 @@ void printUsage()
     printf("             -q [merge quality] either 1, 2, or 4 bits per byte\n\n");
 }
 
-inline uint8_t getBitMask(merge_quality quality) {
+uint8_t getBitMask(merge_quality quality)
+{
 	uint8_t mask = 0x00;
 
 	for (int i = 0;i < quality;i++) {
@@ -43,7 +44,7 @@ inline uint8_t getBitMask(merge_quality quality) {
 	return mask;
 }
 
-inline int getNumImageBytesRequired(merge_quality quality)
+int getNumImageBytesRequired(merge_quality quality)
 {
 	return (8 / quality);
 }
@@ -112,7 +113,7 @@ int main(int argc, char ** argv)
 	char *			pszOutputFilename = NULL;
 	char *			pszSourceFilename = NULL;
 	const uint32_t	keyBufferLen = 64U;
-	uint8_t *		key;
+	uint8_t *		key = NULL;
 	uint32_t		keyLength;
 	boolean			isMerge = false;
 	merge_quality	quality;
@@ -197,16 +198,16 @@ int main(int argc, char ** argv)
 	}
 	else {
 		algo = aes256;
-	}
     
-	key = (uint8_t *)malloc(keyBufferLen);
+		key = (uint8_t *)malloc(keyBufferLen);
 
-	if (key == NULL) {
-		fprintf(stderr, "Failed to allocate memory for key\n");
-		exit(-1);
+		if (key == NULL) {
+			fprintf(stderr, "Failed to allocate memory for key\n");
+			exit(-1);
+		}
+
+		keyLength = getKey(key, keyBufferLen);
 	}
-
-	keyLength = getKey(key, keyBufferLen);
 
 	HSECRW			hsec;
 	HPNG			hpng;
@@ -314,6 +315,9 @@ int main(int argc, char ** argv)
 		pngrw_close(hpng);
     }
     else {
+		/*
+		** Extract our secret file from the source image...
+		*/
 		hpng = pngrw_open(pszSourceFilename, NULL);
 
 		if (hpng == NULL) {
@@ -334,7 +338,100 @@ int main(int argc, char ** argv)
 		imageBytesRead = pngrw_read(hpng, imageData, imageDataLen);
 
 		printf("Read %u bytes of image data, expected %u bytes\n", imageBytesRead, imageDataLen);
+
+		hsec = wrtr_open(pszOutputFilename, algo);
+
+		if (hsec == NULL) {
+			fprintf(stderr, "Failed to open output file %s\n", pszOutputFilename);
+			free(imageData);
+			exit(-1);
+		}
+
+		secretDataBlockLen = wrtr_get_block_size(hsec);
+
+		printf("Allocating %u bytes for secret data block\n", secretDataBlockLen);
+
+		secretDataBlock = (uint8_t *)malloc(secretDataBlockLen);
+
+		if (secretDataBlock == NULL) {
+    		fprintf(stderr, "Could not allocate memory for secret data block\n");
+			free(imageData);
+			pngrw_close(hpng);
+			exit(-1);
+		}
+
+		if (algo == aes256) {
+			keyLength = getKey(key, keyBufferLen);
+
+			printf("Got AES key:\n");
+			hexDump(key, keyBufferLen);
+
+			if (wrtr_set_key_aes(hsec, key, keyLength)) {
+				fprintf(stderr, "Failed to set AES key\n");
+				free(imageData);
+				pngrw_close(hpng);
+				wrtr_close(hsec);
+				exit(-1);
+			}
+		}
+		else if (algo == xor) {
+			wrtr_set_keystream_file(hsec, pszKeystreamFilename);
+		}
+
+		numImgBytesRequired = getNumImageBytesRequired(quality);
+
+		printf("Num image bytes required for extract = %d\n", numImgBytesRequired);
+
+		secretBufferIndex = 0;
+
+		for (
+			imageDataIndex = 0;
+			imageDataIndex < imageDataLen;
+			imageDataIndex += numImgBytesRequired)
+		{
+			memcpy(imageBuffer, &imageData[imageDataIndex], numImgBytesRequired);
+
+			printf("Got image block %d bytes:\n", numImgBytesRequired);
+			hexDump(imageBuffer, numImgBytesRequired);
+			__getch();
+
+			secretByte = extractSecretByte(imageBuffer, numImgBytesRequired, quality);
+
+			printf("Extracted secret byte 0x%02X\n", secretByte);
+
+			secretDataBlock[secretBufferIndex++] = secretByte;
+
+			if (secretBufferIndex == secretDataBlockLen) {
+				__getch();
+				printf("Writing encrypted data block:\n");
+				hexDump(secretDataBlock, secretDataBlockLen);
+
+				if (wrtr_write_decrypted_block(hsec, secretDataBlock, secretDataBlockLen)) {
+					fprintf(stderr, "Error writing secret block\n");
+					free(secretDataBlock);
+					free(imageData);
+					pngrw_close(hpng);
+					wrtr_close(hsec);
+
+					exit(-1);
+				}
+
+				secretBufferIndex = 0;
+
+				if (!wrtr_has_more_blocks(hsec)) {
+					break;
+				}
+			}
+		}
+
+		free(imageData);
+		free(secretDataBlock);
+
+		pngrw_close(hpng);
+		wrtr_close(hsec);
     }
 
 	secureFree(key, keyBufferLen);
+
+	return 0;
 }

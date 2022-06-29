@@ -148,9 +148,9 @@ HSECRW rdr_open(char * pszFilename, encryption_algo a)
 		/*
 		** XOR the header with random data...
 		*/
-		xorBuffer(&header, &random_block[2048], sizeof(CLOAK_HEADER));
-
 		memcpy(&hsec->data[index], &header, sizeof(CLOAK_HEADER));
+		xorBuffer(&hsec->data[index], &random_block[2048], sizeof(CLOAK_HEADER));
+
 		index += sizeof(CLOAK_HEADER);
 
 		memcpy(&hsec->data[index], iv, blklen);
@@ -368,6 +368,23 @@ HSECRW wrtr_open(char * pszFilename, encryption_algo a)
 	return hsec;
 }
 
+void wrtr_close(HSECRW hsec)
+{
+	if (hsec->fptrSecret != NULL) {
+		fclose(hsec->fptrSecret);
+	}
+
+	if (hsec->fptrKey != NULL) {
+		fclose(hsec->fptrKey);
+	}
+
+	if (hsec->data != NULL) {
+		free(hsec->data);
+	}
+
+	free(hsec);
+}
+
 uint32_t wrtr_get_block_size(HSECRW hsec)
 {
 	return hsec->blockSize;
@@ -387,6 +404,19 @@ int wrtr_set_key_aes(HSECRW hsec, uint8_t * key, uint32_t keyLength)
 {
 	if (hsec->algo == aes256) {
 		int			err;
+
+		err = gcry_cipher_open(
+							&hsec->cipherHandle,
+							GCRY_CIPHER_RIJNDAEL256,
+							GCRY_CIPHER_MODE_CBC,
+							0);
+
+		if (err) {
+			fprintf(stderr, "Failed to open cipher with gcrypt\n");
+			fclose(hsec->fptrSecret);
+			free(hsec);
+			return -1;
+		}
 
 		err = gcry_cipher_setkey(
 							hsec->cipherHandle,
@@ -418,16 +448,24 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 
 	if (hsec->blockCounter == 0) {
 		if (hsec->algo == aes256 || hsec->algo == xor) {
-			memcpy(&header, buffer, sizeof(CLOAK_HEADER));
-
 			/*
 			** XOR the header with random data...
 			*/
-			xorBuffer(&header, &random_block[2048], sizeof(CLOAK_HEADER));
+			printf("XOR from random block:\n");
+			hexDump(&random_block[2048], sizeof(CLOAK_HEADER));
+
+			xorBuffer(buffer, &random_block[2048], sizeof(CLOAK_HEADER));
+			memcpy(&header, buffer, sizeof(CLOAK_HEADER));
+
+			printf("Got header:\n");
+			hexDump(&header, sizeof(CLOAK_HEADER));
 
 			hsec->fileLength = header.fileLength;
 			hsec->encryptionBufferLength = header.encryptionBufferLength;
 			hsec->dataFrameLength  = header.dataFrameLength;
+
+			printf("fileLength = %u, encryptedBufferLength = %u, dataFrameLength = %u\n", hsec->fileLength, hsec->encryptionBufferLength, hsec->dataFrameLength);
+			__getch();
 
 			hsec->counter = sizeof(CLOAK_HEADER);
 
@@ -438,19 +476,6 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 
 				if (hsec == NULL) {
 					fprintf(stderr, "Failed to allocate %u bytes for data buffer\n", hsec->dataFrameLength);
-					return -1;
-				}
-
-				err = gcry_cipher_open(
-									&hsec->cipherHandle,
-									GCRY_CIPHER_RIJNDAEL256,
-									GCRY_CIPHER_MODE_CBC,
-									0);
-
-				if (err) {
-					fprintf(stderr, "Failed to open cipher with gcrypt\n");
-					fclose(hsec->fptrSecret);
-					free(hsec);
 					return -1;
 				}
 
@@ -480,7 +505,7 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 					return -1;
 				}
 
-				free(iv);
+//				free(iv);
 
 				/*
 				** We've set the IV here, so we're not going to write
@@ -507,36 +532,42 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 	else {
 		if ((hsec->counter + bufferLength) > hsec->dataFrameLength) {
 			bufferLength = (hsec->dataFrameLength - hsec->counter);
-		}
 
-		if (hsec->algo == aes256) {
-			memcpy(&hsec->data[hsec->counter], buffer, bufferLength);
+			if (hsec->algo == aes256) {
+				printf("Copying last %u bytes to secret data buffer\n", bufferLength);
+				printf("counter = %u, dataFrameLength = %u\n", hsec->counter, hsec->dataFrameLength);
 
-			err = gcry_cipher_decrypt(
-									hsec->cipherHandle,
-									hsec->data,
-									hsec->encryptionBufferLength,
-									NULL,
-									0);
+				memcpy(&hsec->data[hsec->counter], buffer, bufferLength);
 
-			if (err) {
-				fprintf(stderr, "Failed to decrypt buffer: %s", gcry_strerror(err));
-				free(hsec);
-				return -1;
+				printf("Decrypting secret data:\n");
+				hexDump(hsec->data, hsec->dataFrameLength);
+
+				err = gcry_cipher_decrypt(
+										hsec->cipherHandle,
+										hsec->data,
+										hsec->encryptionBufferLength,
+										NULL,
+										0);
+
+				if (err) {
+					fprintf(stderr, "Failed to decrypt buffer: %s", gcry_strerror(err));
+					free(hsec);
+					return -1;
+				}
+
+				gcry_cipher_close(hsec->cipherHandle);
+
+				fwrite(hsec->data, 1, hsec->fileLength, hsec->fptrSecret);
 			}
-
-			gcry_cipher_close(hsec->cipherHandle);
-
-			fwrite(hsec->data, 1, hsec->fileLength, hsec->fptrSecret);
-		}
-		else if (hsec->algo == xor) {
-			for (i = 0;i < bufferLength;i++) {
-				buffer[i] = buffer[i] ^ fgetc(hsec->fptrKey);
-				fputc(buffer[i], hsec->fptrSecret);
+			else if (hsec->algo == xor) {
+				for (i = 0;i < bufferLength;i++) {
+					buffer[i] = buffer[i] ^ fgetc(hsec->fptrKey);
+					fputc(buffer[i], hsec->fptrSecret);
+				}
 			}
-		}
-		else {
-			fwrite(buffer, 1, bufferLength, hsec->fptrSecret);
+			else {
+				fwrite(buffer, 1, bufferLength, hsec->fptrSecret);
+			}
 		}
 			
 		hsec->counter += bufferLength;

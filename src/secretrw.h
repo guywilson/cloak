@@ -25,6 +25,7 @@ boolean     rdr_has_more_blocks(HSECRW hsec);
 uint32_t 	rdr_read_encrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLength);
 
 HSECRW 		wrtr_open(char * pszFilename, encryption_algo a);
+void 		wrtr_close(HSECRW hsec);
 uint32_t 	wrtr_get_block_size(HSECRW hsec);
 boolean 	wrtr_has_more_blocks(HSECRW hsec);
 int 		wrtr_set_keystream_file(HSECRW hsec, char * pszFilename);

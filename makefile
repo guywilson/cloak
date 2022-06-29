@@ -28,7 +28,7 @@ PRECOMPILE = @ mkdir -p $(BUILD) $(DEP)
 # postcompile step
 POSTCOMPILE = @ mv -f $(DEP)/$*.Td $(DEP)/$*.d
 
-CFLAGS = -c -O2 -Wall -pedantic -I/opt/homebrew/include -I/Users/guy/Library/include
+CFLAGS = -c -O1 -Wall -pedantic -I/opt/homebrew/include -I/Users/guy/Library/include
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEP)/$*.Td
 
 # Libraries
