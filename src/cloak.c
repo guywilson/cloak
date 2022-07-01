@@ -2,12 +2,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <ctype.h>
+
+#include <gcrypt.h>
 
 #include "cloak_types.h"
 #include "secretrw.h"
 #include "pngrw.h"
 #include "random_block.h"
 #include "utils.h"
+
+#define MAX_PASSWORD_LENGTH						255
 
 typedef enum {
 	quality_high = 1,
@@ -98,9 +103,35 @@ uint8_t extractSecretByte(uint8_t * imageBytes, uint32_t numImageBytes, merge_qu
 
 uint32_t getKey(uint8_t * keyBuffer, uint32_t keyBufferLength)
 {
-	memcpy(keyBuffer, random_block, 32U);
+	static char		szPassword[MAX_PASSWORD_LENGTH + 1];
+	int				i = 0;
+	int				ch = 0;
+	uint32_t		keySize;
 
-	return 32U;
+	printf("Enter password: ");
+	
+	while (i < MAX_PASSWORD_LENGTH) {
+		ch = __getch();
+
+		if (ch != '\n' && ch != '\r') {
+			putchar('*');
+			fflush(stdout);
+			szPassword[i++] = (char)ch;
+		}
+		else {
+			break;
+		}
+	}
+
+	putchar('\n');
+	fflush(stdout);
+	szPassword[i] = 0;
+
+	gcry_md_hash_buffer(GCRY_MD_SHA3_256, keyBuffer, szPassword, i);
+
+	keySize = gcry_md_get_algo_dlen(GCRY_MD_SHA3_256);
+
+	return keySize;
 }
 
 int main(int argc, char ** argv)
@@ -268,16 +299,18 @@ int main(int argc, char ** argv)
 
 		imageBytesRead = pngrw_read(hpng, imageData, imageDataLen);
 
-		printf("Read %u bytes of image data, expected %u bytes\n", imageBytesRead, imageDataLen);
+		if (imageBytesRead < imageDataLen) {
+			fprintf(stderr, "Expected %u bytes of image data, but got %u bytes\n", imageDataLen, imageBytesRead);
+			rdr_close(hsec);
+			pngrw_close(hpng);
+			exit(-1);
+		}
 
 		numImgBytesRequired = getNumImageBytesRequired(quality);
 
 		while (rdr_has_more_blocks(hsec)) {
 			secretBytesRemaining = rdr_read_encrypted_block(hsec, secretDataBlock, secretDataBlockLen);
 			secretBufferIndex = 0;
-
-			printf("\nRead secret block %u bytes long\n", secretBytesRemaining);
-			hexDump(secretDataBlock, secretBytesRemaining);
 
 			for(secretBufferIndex = 0;secretBufferIndex < secretBytesRemaining;secretBufferIndex++) {
 				secretByte = secretDataBlock[secretBufferIndex];
@@ -342,8 +375,6 @@ int main(int argc, char ** argv)
 		}
 
 		if (algo == aes256) {
-			keyLength = getKey(key, keyBufferLen);
-
 			if (wrtr_set_key_aes(hsec, key, keyLength)) {
 				fprintf(stderr, "Failed to set AES key\n");
 				free(imageData);
