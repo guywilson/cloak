@@ -213,7 +213,6 @@ int main(int argc, char ** argv)
 	HPNG			hpng;
 	uint8_t *		secretDataBlock;
 	uint8_t *		imageData;
-	uint8_t			imageBuffer[8];
 	uint8_t			secretByte = 0x00;
 	uint32_t		secretDataBlockLen;
 	uint32_t		imageDataLen;
@@ -279,31 +278,17 @@ int main(int argc, char ** argv)
 			printf("\nRead secret block %u bytes long\n", secretBytesRemaining);
 			hexDump(secretDataBlock, secretBytesRemaining);
 
-			memcpy(
-				imageBuffer, 
-				&imageData[imageDataIndex], 
-				numImgBytesRequired);
+			for(secretBufferIndex = 0;secretBufferIndex < secretBytesRemaining;secretBufferIndex++) {
+				secretByte = secretDataBlock[secretBufferIndex];
 
-			secretByte = secretDataBlock[secretBufferIndex++];
-			secretBytesRemaining--;
+				mergeSecretByte(
+						&imageData[imageDataIndex], 
+						numImgBytesRequired, 
+						secretByte, 
+						quality);
 
-			mergeSecretByte(
-					imageBuffer, 
-					numImgBytesRequired, 
-					secretByte, 
-					quality);
-
-			/*
-			** Copy the merged bytes back to the row buffer ready for writing...
-			*/
-			memcpy(
-				&imageData[imageDataIndex], 
-				imageBuffer, 
-				numImgBytesRequired);
-
-			memset(imageBuffer, 0x00, numImgBytesRequired);
-
-			imageDataIndex += (uint32_t)numImgBytesRequired;
+				imageDataIndex += (uint32_t)numImgBytesRequired;
+			}
 		}
 
 		pngrw_write(hpng, imageData, imageDataLen);
@@ -389,23 +374,11 @@ int main(int argc, char ** argv)
 			imageDataIndex < imageDataLen;
 			imageDataIndex += numImgBytesRequired)
 		{
-			memcpy(imageBuffer, &imageData[imageDataIndex], numImgBytesRequired);
-
-			printf("Got image block %d bytes:\n", numImgBytesRequired);
-			hexDump(imageBuffer, numImgBytesRequired);
-			__getch();
-
-			secretByte = extractSecretByte(imageBuffer, numImgBytesRequired, quality);
-
-			printf("Extracted secret byte 0x%02X\n", secretByte);
+			secretByte = extractSecretByte(&imageData[imageDataIndex], numImgBytesRequired, quality);
 
 			secretDataBlock[secretBufferIndex++] = secretByte;
 
 			if (secretBufferIndex == secretDataBlockLen) {
-				__getch();
-				printf("Writing encrypted data block:\n");
-				hexDump(secretDataBlock, secretDataBlockLen);
-
 				if (wrtr_write_decrypted_block(hsec, secretDataBlock, secretDataBlockLen)) {
 					fprintf(stderr, "Error writing secret block\n");
 					free(secretDataBlock);

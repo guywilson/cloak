@@ -10,6 +10,6 @@ void        wipeBuffer(void * b, uint32_t bufferLen);
 void        secureFree(void * b, uint32_t len);
 int         __getch();
 void        hexDump(void * buffer, uint32_t bufferLen);
-void        xorBuffer(void * target, void * source, size_t length);
+void        xorBuffer(uint8_t * target, uint8_t * source, size_t length);
 
 #endif

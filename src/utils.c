@@ -143,17 +143,11 @@ void secureFree(void * b, uint32_t len)
     free(b);
 }
 
-void xorBuffer(void * target, void * source, size_t length)
+void xorBuffer(uint8_t * target, uint8_t * source, size_t length)
 {
-    uint32_t        c;
-    uint8_t *       t;
-    uint8_t *       s;
+    uint32_t        i;
 
-    t = (uint8_t *)target;
-    s = (uint8_t *)source;
-
-    for (c = 0;c < length;c++) {
-        printf("XOR byte 0x%02X with byte 0x%02X\n", t[c], s[c]);
-        t[c] = t[c] ^ s[c];
+    for (i = 0;i < length;i++) {
+        target[i] = target[i] ^ source[i];
     }
 }
