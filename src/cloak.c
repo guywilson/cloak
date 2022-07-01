@@ -221,6 +221,7 @@ int main(int argc, char ** argv)
 	uint32_t		imageDataIndex = 0U;
 	int				numImgBytesRequired = 0;
 	int				secretBufferIndex = 0;
+	int				rtn;
 
     if (isMerge) {
 		hsec = rdr_open(pszInputFilename, algo);
@@ -322,8 +323,6 @@ int main(int argc, char ** argv)
 
 		imageBytesRead = pngrw_read(hpng, imageData, imageDataLen);
 
-		printf("Read %u bytes of image data, expected %u bytes\n", imageBytesRead, imageDataLen);
-
 		hsec = wrtr_open(pszOutputFilename, algo);
 
 		if (hsec == NULL) {
@@ -333,9 +332,6 @@ int main(int argc, char ** argv)
 		}
 
 		secretDataBlockLen = wrtr_get_block_size(hsec);
-
-		printf("Allocating %u bytes for secret data block\n", secretDataBlockLen);
-
 		secretDataBlock = (uint8_t *)malloc(secretDataBlockLen);
 
 		if (secretDataBlock == NULL) {
@@ -347,9 +343,6 @@ int main(int argc, char ** argv)
 
 		if (algo == aes256) {
 			keyLength = getKey(key, keyBufferLen);
-
-			printf("Got AES key:\n");
-			hexDump(key, keyBufferLen);
 
 			if (wrtr_set_key_aes(hsec, key, keyLength)) {
 				fprintf(stderr, "Failed to set AES key\n");
@@ -365,8 +358,6 @@ int main(int argc, char ** argv)
 
 		numImgBytesRequired = getNumImageBytesRequired(quality);
 
-		printf("Num image bytes required for extract = %d\n", numImgBytesRequired);
-
 		secretBufferIndex = 0;
 
 		for (
@@ -379,7 +370,9 @@ int main(int argc, char ** argv)
 			secretDataBlock[secretBufferIndex++] = secretByte;
 
 			if (secretBufferIndex == secretDataBlockLen) {
-				if (wrtr_write_decrypted_block(hsec, secretDataBlock, secretDataBlockLen)) {
+				rtn = wrtr_write_decrypted_block(hsec, secretDataBlock, secretDataBlockLen);
+
+				if (rtn < 0) {
 					fprintf(stderr, "Error writing secret block\n");
 					free(secretDataBlock);
 					free(imageData);
@@ -388,12 +381,14 @@ int main(int argc, char ** argv)
 
 					exit(-1);
 				}
-
-				secretBufferIndex = 0;
-
-				if (!wrtr_has_more_blocks(hsec)) {
+				else if (rtn > 0) {
+					/*
+					** We've finished...
+					*/
 					break;
 				}
+
+				secretBufferIndex = 0;
 			}
 		}
 

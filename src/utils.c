@@ -74,7 +74,7 @@ void hexDump(void * buffer, uint32_t bufferLen)
         }
 
         printf("%02X", buf[i]);
-        szASCIIBuf[j++] = isalnum(buf[i]) ? buf[i] : '.';
+        szASCIIBuf[j++] = isprint(buf[i]) ? buf[i] : '.';
     }
 
     /*
