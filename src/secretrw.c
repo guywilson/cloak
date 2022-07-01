@@ -513,13 +513,7 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 					return -1;
 				}
 
-//				free(iv);
-
-				/*
-				** We've set the IV here, so we're not going to write
-				** it to the data buffer, so take account of that...
-				*/
-				//hsec->dataFrameLength -= blklen;
+				free(iv);
 
 				memcpy(hsec->data, &buffer[hsec->counter], (bufferLength - hsec->counter));
 
@@ -571,7 +565,7 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 
 				printf("Closed cipher handle, writing data:\n");
 				hexDump(hsec->data, hsec->fileLength);
-				
+
 				fwrite(hsec->data, 1, hsec->fileLength, hsec->fptrSecret);
 			}
 			else if (hsec->algo == xor) {
