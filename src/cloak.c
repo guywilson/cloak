@@ -27,15 +27,20 @@ typedef enum {
 merge_quality;
 
 
-void printUsage()
+void printUsage(char * pszProgName)
 {
-    printf("Usage:\n");
-    printf("    clk --help (show this help)\n");
-    printf("    clk [options] source-image\n");
+    printf("Using %s:\n", pszProgName);
+    printf("    %s --help (show this help)\n", pszProgName);
+    printf("    %s [options] source-image\n", pszProgName);
     printf("    options: -o [output file]\n");
-    printf("             -f [file to cloak]\n");
+    printf("             -f [input file to cloak]\n");
     printf("             -k [keystream file for one-time pad encryption]\n");
-    printf("             -q [merge quality] either 1, 2, or 4 bits per byte\n\n");
+    printf("             --merge-quality=value where value is:\n");
+	printf("                       'high', 'medium', or 'low'\n");
+    printf("             --algo=value where value is:\n");
+	printf("                    'aes' for AES-256 encryption (prompt for password),\n");
+	printf("                    'xor' for one-time pad encryption (-k is mandatory),\n");
+	printf("                    'none' for no encryption (hide only)\n\n");
 }
 
 uint8_t getBitMask(merge_quality quality)
@@ -109,7 +114,7 @@ uint32_t getKey(uint8_t * keyBuffer, uint32_t keyBufferLength)
 	uint32_t		keySize;
 
 	printf("Enter password: ");
-	
+
 	while (i < MAX_PASSWORD_LENGTH) {
 		ch = __getch();
 
@@ -143,12 +148,14 @@ int main(int argc, char ** argv)
 	char *			pszKeystreamFilename = NULL;
 	char *			pszOutputFilename = NULL;
 	char *			pszSourceFilename = NULL;
+	char *			pszAlgorithm;
+	char *			pszQuality;
 	const uint32_t	keyBufferLen = 64U;
 	uint8_t *		key = NULL;
 	uint32_t		keyLength;
 	boolean			isMerge = false;
-	merge_quality	quality;
-	encryption_algo	algo;
+	merge_quality	quality = quality_high;
+	encryption_algo	algo = none;
 	
     if (argc > 1) {
         for (i = 1;i < argc;i++) {
@@ -156,8 +163,53 @@ int main(int argc, char ** argv)
 
             if (arg[0] == '-') {
                 if (strncmp(arg, "--help", 6) == 0) {
-                    printUsage();
+                    printUsage(argv[0]);
                     return 0;
+                }
+                else if (strncmp(arg, "--algo=", 7) == 0) {
+                    pszAlgorithm = strdup(&arg[7]);
+
+					if (strncmp(pszAlgorithm, "aes", 3) == 0) {
+						algo = aes256;
+					}
+					else if (strncmp(pszAlgorithm, "xor", 3) == 0) {
+						algo = xor;
+					}
+					else if (strncmp(pszAlgorithm, "none", 4) == 0) {
+						algo = none;
+					}
+					else {
+						printf("Unrecognised encryption algorithm '%s'\n", pszAlgorithm);
+                    	printUsage(argv[0]);
+						free(pszAlgorithm);
+						return -1;
+					}
+
+					free(pszAlgorithm);
+                }
+                else if (strncmp(arg, "--merge-quality=", 16) == 0) {
+                    pszQuality = strdup(&arg[16]);
+
+					if (strncmp(pszQuality, "high", 4) == 0) {
+						quality = quality_high;
+					}
+					else if (strncmp(pszQuality, "medium", 6) == 0) {
+						quality = quality_medium;
+					}
+					else if (strncmp(pszQuality, "low", 3) == 0) {
+						quality = quality_low;
+					}
+					else if (strncmp(pszQuality, "none", 4) == 0) {
+						quality = quality_none;
+					}
+					else {
+						printf("Unrecognised merge quality '%s'\n", pszQuality);
+                    	printUsage(argv[0]);
+						free(pszQuality);
+						return -1;
+					}
+
+					free(pszQuality);
                 }
                 else if (strncmp(arg, "-f", 2) == 0) {
                     pszInputFilename = strdup(argv[i + 1]);
@@ -168,22 +220,6 @@ int main(int argc, char ** argv)
                 else if (strncmp(arg, "-o", 2) == 0) {
                     pszOutputFilename = strdup(argv[i + 1]);
                 }
-                else if (strncmp(arg, "-q", 2) == 0) {
-                    int q = atoi(argv[i + 1]);
-
-                    switch (q) {
-                        case quality_high:
-                        case quality_medium:
-                        case quality_low:
-						case quality_none:
-							quality = q;
-                            break;
-
-                        default:
-                            printf("Invalid quality supplied, valid quality values are 1, 2, or 4 bits...\n");
-                            return -1;
-                    }
-                }
                 else {
                     printf("Invalid option %s - %s --help for help", arg, argv[0]);
                     return -1;
@@ -192,9 +228,14 @@ int main(int argc, char ** argv)
         }
     }
     else {
-        printUsage();
+    	printUsage(argv[0]);
         return -1;
     }
+
+	if (algo == xor && pszKeystreamFilename == NULL) {
+		printf("For encryption algorithm 'xor', you must specify a key stream file.\n");
+		exit(-1);
+	}
 
 	pszSourceFilename = strdup(argv[argc - 1]);
 	
@@ -224,12 +265,7 @@ int main(int argc, char ** argv)
 		exit(-1);
     }
 
-	if (pszKeystreamFilename != NULL) {
-		algo = xor;
-	}
-	else {
-		algo = aes256;
-    
+	if (algo == aes256) {
 		key = (uint8_t *)malloc(keyBufferLen);
 
 		if (key == NULL) {
@@ -430,7 +466,9 @@ int main(int argc, char ** argv)
 		wrtr_close(hsec);
     }
 
-	secureFree(key, keyBufferLen);
+	if (algo == aes256) {
+		secureFree(key, keyBufferLen);
+	}
 
 	return 0;
 }

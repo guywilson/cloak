@@ -181,12 +181,16 @@ HSECRW rdr_open(char * pszFilename, encryption_algo a)
 			(hsec->dataFrameLength - hsec->fileLength - index));
 	}
 	else if (hsec->algo == xor) {
-		hsec->encryptionBufferLength = hsec->fileLength + (hsec->blockSize - (hsec->fileLength % hsec->blockSize));
-		hsec->dataFrameLength = hsec->encryptionBufferLength + sizeof(CLOAK_HEADER);
+		hsec->encryptionBufferLength = hsec->fileLength + sizeof(CLOAK_HEADER);
+		hsec->dataFrameLength = hsec->encryptionBufferLength;
+
+		printf("XOR encryption: fileLen=%u, encryptionLen=%u, dataFrameLen=%u\n", hsec->fileLength, hsec->encryptionBufferLength, hsec->dataFrameLength);
 	}
 	else {
-		hsec->encryptionBufferLength = hsec->fileLength + (hsec->blockSize - (hsec->fileLength % hsec->blockSize));
+		hsec->encryptionBufferLength = hsec->fileLength;
 		hsec->dataFrameLength = hsec->encryptionBufferLength;
+
+		printf("No encryption: fileLen=%u, encryptionLen=%u, dataFrameLen=%u\n", hsec->fileLength, hsec->encryptionBufferLength, hsec->dataFrameLength);
 	}
 
 	return hsec;
@@ -262,7 +266,7 @@ void rdr_close(HSECRW hsec)
 		fclose(hsec->fptrKey);
 	}
 
-	//free(hsec->data);
+	free(hsec->data);
 	free(hsec);
 }
 
@@ -283,6 +287,8 @@ uint32_t rdr_get_file_length(HSECRW hsec)
 
 boolean rdr_has_more_blocks(HSECRW hsec)
 {
+	printf("counter %u vs dataFrameLen %u\n", hsec->counter, hsec->dataFrameLength);
+
 	return (hsec->counter < hsec->dataFrameLength) ? true : false;
 }
 
@@ -320,15 +326,23 @@ uint32_t rdr_read_encrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t buffer
 
 			bytesRead = sizeof(CLOAK_HEADER);
 			bytesRead += fread(&buffer[sizeof(CLOAK_HEADER)], 1, (hsec->blockSize - sizeof(CLOAK_HEADER)), hsec->fptrSecret);
+
+			index = sizeof(CLOAK_HEADER);
 		}
 		else {
 			bytesRead = fread(buffer, 1, hsec->blockSize, hsec->fptrSecret);
 		}
 
-		while (index < hsec->blockSize) {
+		printf("Encrypting block %u bytes using XOR\n", hsec->blockSize);
+		hexDump(buffer, bytesRead);
+
+		while (index < bytesRead) {
 			buffer[index] = buffer[index] ^ (uint8_t)fgetc(hsec->fptrKey);
 			index++;
 		}
+
+		printf("Encrypted block %u bytes using XOR\n", hsec->blockSize);
+		hexDump(buffer, bytesRead);
 	}
 	else {
 		bytesRead = fread(buffer, 1, hsec->blockSize, hsec->fptrSecret);
@@ -507,7 +521,7 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 			}
 			else if (hsec->algo == xor) {
 				for (i = bufferIndex;i < (bufferLength - bufferIndex);i++) {
-					buffer[i] = buffer[i] ^ fgetc(hsec->fptrKey);
+					buffer[i] = buffer[i] ^ (uint8_t)fgetc(hsec->fptrKey);
 					fputc(buffer[i], hsec->fptrSecret);
 				}
 			}
@@ -523,10 +537,11 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 			memcpy(&hsec->data[hsec->counter], buffer, bufferLength);
 		}
 		else if (hsec->algo == xor) {
-			for (i = 0;i < bufferLength;i++) {
-				buffer[i] = buffer[i] ^ fgetc(hsec->fptrKey);
-				fputc(buffer[i], hsec->fptrSecret);
+			for (i = 0;i < hsec->blockSize;i++) {
+				buffer[i] = buffer[i] ^ (uint8_t)fgetc(hsec->fptrKey);
 			}
+
+			fwrite(buffer, 1, bufferLength, hsec->fptrSecret);
 		}
 		else {
 			fwrite(buffer, 1, bufferLength, hsec->fptrSecret);
@@ -556,10 +571,11 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 			fwrite(hsec->data, 1, hsec->fileLength, hsec->fptrSecret);
 		}
 		else if (hsec->algo == xor) {
-			for (i = 0;i < bufferLength;i++) {
-				buffer[i] = buffer[i] ^ fgetc(hsec->fptrKey);
-				fputc(buffer[i], hsec->fptrSecret);
+			for (i = 0;i < (hsec->encryptionBufferLength - hsec->counter);i++) {
+				buffer[i] = buffer[i] ^ (uint8_t)fgetc(hsec->fptrKey);
 			}
+
+			fwrite(buffer, 1, (hsec->encryptionBufferLength - hsec->counter), hsec->fptrSecret);
 		}
 		else {
 			fwrite(buffer, 1, bufferLength, hsec->fptrSecret);
