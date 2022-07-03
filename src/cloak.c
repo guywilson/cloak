@@ -278,10 +278,10 @@ int main(int argc, char ** argv)
 
 	HSECRW			hsec;
 	HPNG			hpng;
-	uint8_t *		secretDataBlock;
+	uint8_t *		secretData;
 	uint8_t *		imageData;
 	uint8_t			secretByte = 0x00;
-	uint32_t		secretDataBlockLen;
+	uint32_t		secretDataLen;
 	uint32_t		imageDataLen;
 	uint32_t		secretBytesRemaining = 0;
 	uint32_t		imageBytesRead;
@@ -313,12 +313,12 @@ int main(int argc, char ** argv)
 			}
 		}
 
-		secretDataBlockLen = rdr_get_block_size(hsec);
+		secretDataLen = rdr_get_data_length(hsec);
 
-    	secretDataBlock = (uint8_t *)malloc(secretDataBlockLen);
+    	secretData = (uint8_t *)malloc(secretDataLen);
     	
-    	if (secretDataBlock == NULL) {
-    		fprintf(stderr, "Could not allocate memory for input block\n");
+    	if (secretData == NULL) {
+    		fprintf(stderr, "Could not allocate memory for input data\n");
 			rdr_close(hsec);
 			exit(-1);
     	}
@@ -352,33 +352,34 @@ int main(int argc, char ** argv)
 
 		numImgBytesRequired = getNumImageBytesRequired(quality);
 
-		while (rdr_has_more_blocks(hsec)) {
-			secretBytesRemaining = rdr_read_encrypted_block(hsec, secretDataBlock, secretDataBlockLen);
+		secretBytesRemaining = rdr_read_encrypted_data(hsec, secretData, secretDataLen);
 
-			for(secretBufferIndex = 0;secretBufferIndex < secretBytesRemaining;secretBufferIndex++) {
-				secretByte = secretDataBlock[secretBufferIndex];
+		for(secretBufferIndex = 0;secretBufferIndex < secretBytesRemaining;secretBufferIndex++) {
+			secretByte = secretData[secretBufferIndex];
 
-				mergeSecretByte(
-						&imageData[imageDataIndex], 
-						numImgBytesRequired, 
-						secretByte, 
-						quality);
+			mergeSecretByte(
+					&imageData[imageDataIndex], 
+					numImgBytesRequired, 
+					secretByte, 
+					quality);
 
-				imageDataIndex += (uint32_t)numImgBytesRequired;
-			}
+			imageDataIndex += (uint32_t)numImgBytesRequired;
 		}
 
 		printf("imageDataIndex %u\n", imageDataIndex);
-		
+
 		pngrw_write(hpng, imageData, imageDataLen);
 
-		free(secretDataBlock);
+		free(secretData);
 		free(imageData);
     	
     	rdr_close(hsec);
 		pngrw_close(hpng);
     }
     else {
+		uint8_t *		headerBuffer;
+		uint32_t		headerBufferLen;
+
 		/*
 		** Extract our secret file from the source image...
 		*/
@@ -409,13 +410,15 @@ int main(int argc, char ** argv)
 			exit(-1);
 		}
 
-		secretDataBlockLen = wrtr_get_block_size(hsec);
-		secretDataBlock = (uint8_t *)malloc(secretDataBlockLen);
+		headerBufferLen = wrtr_get_header_length();
+		headerBuffer = (uint8_t *)malloc(headerBufferLen);
 
-		if (secretDataBlock == NULL) {
-    		fprintf(stderr, "Could not allocate memory for secret data block\n");
-			free(imageData);
+		printf("headerBufferLen = %u\n", headerBufferLen);
+
+		if (headerBuffer == NULL) {
+    		fprintf(stderr, "Could not allocate memory for header buffer\n");
 			pngrw_close(hpng);
+			wrtr_close(hsec);
 			exit(-1);
 		}
 
@@ -443,33 +446,52 @@ int main(int argc, char ** argv)
 		{
 			secretByte = extractSecretByte(&imageData[imageDataIndex], numImgBytesRequired, quality);
 
-			secretDataBlock[secretBufferIndex++] = secretByte;
+			if (secretBufferIndex < headerBufferLen) {
+				headerBuffer[secretBufferIndex] = secretByte;
+			}
+			else {
+				secretData[secretBufferIndex] = secretByte;
+			}
 
-			if (secretBufferIndex == secretDataBlockLen) {
-				rtn = wrtr_write_decrypted_block(hsec, secretDataBlock, secretDataBlockLen);
+			secretBufferIndex++;
+
+			if (secretBufferIndex == headerBufferLen) {
+				wrtr_read_header(hsec, headerBuffer, headerBufferLen);
+
+				printf("headerBuffer (secretBufferIndex = %d):\n", secretBufferIndex);
+				hexDump(headerBuffer, headerBufferLen);
+
+				free(headerBuffer);
+
+				secretDataLen = wrtr_get_data_length(hsec);
+				secretData = (uint8_t *)malloc(secretDataLen);
+
+				printf("secretDataLen = %u\n", secretDataLen);
+
+				if (secretData == NULL) {
+					fprintf(stderr, "Could not allocate memory for secret data block\n");
+					free(imageData);
+					pngrw_close(hpng);
+					exit(-1);
+				}
+			}
+			else if (secretBufferIndex == secretDataLen) {
+				rtn = wrtr_write_decrypted_data(hsec, secretData, secretDataLen);
 
 				if (rtn < 0) {
 					fprintf(stderr, "Error writing secret block\n");
-					free(secretDataBlock);
+					free(secretData);
 					free(imageData);
 					pngrw_close(hpng);
 					wrtr_close(hsec);
 
 					exit(-1);
 				}
-				else if (rtn > 0) {
-					/*
-					** We've finished...
-					*/
-					break;
-				}
-
-				secretBufferIndex = 0;
 			}
 		}
 
 		free(imageData);
-		free(secretDataBlock);
+		free(secretData);
 
 		pngrw_close(hpng);
 		wrtr_close(hsec);
