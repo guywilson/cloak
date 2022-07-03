@@ -299,10 +299,18 @@ int main(int argc, char ** argv)
     	}
     	
 		if (algo == aes256) {
-			rdr_encrypt_aes256(hsec, key, keyLength);
+			rtn = rdr_encrypt_aes256(hsec, key, keyLength);
+
+			if (rtn) {
+				exit(-1);
+			}
 		}
 		else if (algo == xor) {
-			rdr_set_keystream_file(hsec, pszKeystreamFilename);
+			rtn = rdr_encrypt_xor(hsec, pszKeystreamFilename);
+
+			if (rtn) {
+				exit(-1);
+			}
 		}
 
 		secretDataBlockLen = rdr_get_block_size(hsec);
@@ -346,7 +354,6 @@ int main(int argc, char ** argv)
 
 		while (rdr_has_more_blocks(hsec)) {
 			secretBytesRemaining = rdr_read_encrypted_block(hsec, secretDataBlock, secretDataBlockLen);
-			secretBufferIndex = 0;
 
 			for(secretBufferIndex = 0;secretBufferIndex < secretBytesRemaining;secretBufferIndex++) {
 				secretByte = secretDataBlock[secretBufferIndex];
@@ -361,6 +368,8 @@ int main(int argc, char ** argv)
 			}
 		}
 
+		printf("imageDataIndex %u\n", imageDataIndex);
+		
 		pngrw_write(hpng, imageData, imageDataLen);
 
 		free(secretDataBlock);

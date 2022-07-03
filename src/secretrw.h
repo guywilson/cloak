@@ -16,7 +16,7 @@ encryption_algo;
 
 HSECRW      rdr_open(char * pszFilename, encryption_algo a);
 int 		rdr_encrypt_aes256(HSECRW hsec, uint8_t * key, uint32_t keyLength);
-int         rdr_set_keystream_file(HSECRW hsec, char * pszKeystreamFilename);
+int         rdr_encrypt_xor(HSECRW hsec, char * pszKeystreamFilename);
 void        rdr_close(HSECRW hsec);
 uint32_t    rdr_get_block_size(HSECRW hsec);
 uint32_t    rdr_get_data_length(HSECRW hsec);
