@@ -8,7 +8,8 @@ struct _png_handle;
 typedef struct _png_handle *    HPNG;
 
 HPNG        pngrw_open(char * pszSourceImageName, char * pszTargetImageName);
-void        pngrw_close(HPNG hpng);
+void        pngrw_read_close(HPNG hpng);
+void        pngrw_write_close(HPNG hpng);
 uint32_t    pngrw_get_row_buffer_len(HPNG hpng);
 uint32_t    pngrw_get_data_length(HPNG hpng);
 boolean     pngrw_has_more_rows(HPNG hpng);

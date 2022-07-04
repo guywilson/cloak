@@ -47,8 +47,22 @@ uint8_t getBitMask(merge_quality quality)
 {
 	uint8_t mask = 0x00;
 
-	for (int i = 0;i < quality;i++) {
-		mask += (0x01 << i) & 0xFF;
+	switch (quality) {
+		case quality_high:
+			mask = 0x01;
+			break;
+
+		case quality_medium:
+			mask = 0x03;
+			break;
+
+		case quality_low:
+			mask = 0x0F;
+			break;
+
+		case quality_none:
+			mask = 0xFF;
+			break;
 	}
 
 	return mask;
@@ -65,7 +79,6 @@ void mergeSecretByte(uint8_t * imageBytes, int numImageBytes, uint8_t secretByte
 	uint8_t			secretBits;
 	int				i;
 	int				bitCounter = 0;
-	int				pos = 0;
 
 	mask = getBitMask(quality);
 
@@ -77,7 +90,6 @@ void mergeSecretByte(uint8_t * imageBytes, int numImageBytes, uint8_t secretByte
 
         if (bitCounter == 8) {
             bitCounter = 0;
-            pos++;
         }
     }
 }
@@ -337,7 +349,7 @@ int main(int argc, char ** argv)
 		if (imageData == NULL) {
     		fprintf(stderr, "Could not allocate memory for image data\n");
 			rdr_close(hsec);
-			pngrw_close(hpng);
+			pngrw_read_close(hpng);
 			exit(-1);
 		}
 
@@ -346,9 +358,11 @@ int main(int argc, char ** argv)
 		if (imageBytesRead < imageDataLen) {
 			fprintf(stderr, "Expected %u bytes of image data, but got %u bytes\n", imageDataLen, imageBytesRead);
 			rdr_close(hsec);
-			pngrw_close(hpng);
+			pngrw_read_close(hpng);
 			exit(-1);
 		}
+
+		pngrw_read_close(hpng);
 
 		numImgBytesRequired = getNumImageBytesRequired(quality);
 
@@ -370,13 +384,16 @@ int main(int argc, char ** argv)
 
 		printf("imageDataIndex %u\n", imageDataIndex);
 		
-		pngrw_write(hpng, imageData, imageDataLen);
+		uint32_t imgBytesWritten = pngrw_write(hpng, imageData, imageDataLen);
+    	
+		printf("Written %u bytes of image data\n", imgBytesWritten);
+
+    	rdr_close(hsec);
+		pngrw_write_close(hpng);
 
 		free(secretDataBlock);
 		free(imageData);
-    	
-    	rdr_close(hsec);
-		pngrw_close(hpng);
+		free(hpng);
     }
     else {
 		/*
@@ -395,11 +412,13 @@ int main(int argc, char ** argv)
 
 		if (imageData == NULL) {
     		fprintf(stderr, "Could not allocate memory for image data\n");
-			pngrw_close(hpng);
+			pngrw_read_close(hpng);
 			exit(-1);
 		}
 
 		imageBytesRead = pngrw_read(hpng, imageData, imageDataLen);
+
+		pngrw_read_close(hpng);
 
 		hsec = wrtr_open(pszOutputFilename, algo);
 
@@ -415,7 +434,7 @@ int main(int argc, char ** argv)
 		if (secretDataBlock == NULL) {
     		fprintf(stderr, "Could not allocate memory for secret data block\n");
 			free(imageData);
-			pngrw_close(hpng);
+			pngrw_read_close(hpng);
 			exit(-1);
 		}
 
@@ -423,7 +442,7 @@ int main(int argc, char ** argv)
 			if (wrtr_set_key_aes(hsec, key, keyLength)) {
 				fprintf(stderr, "Failed to set AES key\n");
 				free(imageData);
-				pngrw_close(hpng);
+				pngrw_read_close(hpng);
 				wrtr_close(hsec);
 				exit(-1);
 			}
@@ -452,7 +471,7 @@ int main(int argc, char ** argv)
 					fprintf(stderr, "Error writing secret block\n");
 					free(secretDataBlock);
 					free(imageData);
-					pngrw_close(hpng);
+					pngrw_read_close(hpng);
 					wrtr_close(hsec);
 
 					exit(-1);
@@ -471,7 +490,6 @@ int main(int argc, char ** argv)
 		free(imageData);
 		free(secretDataBlock);
 
-		pngrw_close(hpng);
 		wrtr_close(hsec);
     }
 

@@ -175,15 +175,16 @@ HPNG pngrw_open(char * pszSourceImageName, char * pszTargetImageName)
     return hpng;
 }
 
-void pngrw_close(HPNG hpng)
+void pngrw_read_close(HPNG hpng)
 {
 	png_read_end(hpng->png_ptr_read, NULL);
 	png_destroy_read_struct(&hpng->png_ptr_read, &hpng->info_ptr_read, NULL);
+}
 
+void pngrw_write_close(HPNG hpng)
+{
     png_write_end(hpng->png_ptr_write, NULL);
     png_destroy_write_struct(&hpng->png_ptr_write, &hpng->info_ptr_write);
-
-    free(hpng);
 }
 
 uint32_t pngrw_get_row_buffer_len(HPNG hpng)
