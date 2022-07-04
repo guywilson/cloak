@@ -50,15 +50,10 @@ void _readwrite_error_handler(png_structp png_ptr, png_const_charp msg)
 }
 
 
-HPNG pngrw_open(char * pszSourceImageName, char * pszTargetImageName)
+HPNG pngrdr_open(char * pszImageName)
 {
     HPNG            hpng;
-    boolean         isMerge = false;
 
-    if (pszTargetImageName != NULL) {
-        isMerge = true;
-    }
-    
     hpng = (HPNG)malloc(sizeof(HPNG));
 
     if (hpng == NULL) {
@@ -66,10 +61,10 @@ HPNG pngrw_open(char * pszSourceImageName, char * pszTargetImageName)
         return NULL;
     }
 
-    hpng->fptr_input = fopen(pszSourceImageName, "rb");
+    hpng->fptr_input = fopen(pszImageName, "rb");
     
     if (hpng->fptr_input == NULL) {
-        fprintf(stderr, "Could not open input image file %s: %s\n", pszSourceImageName, strerror(errno));
+        fprintf(stderr, "Could not open input image file %s: %s\n", pszImageName, strerror(errno));
         exit(-1);
     }
 
@@ -126,65 +121,83 @@ HPNG pngrw_open(char * pszSourceImageName, char * pszTargetImageName)
     }
     
     hpng->rowCounter = 0;
-	
-    if (isMerge) {
-        hpng->fptr_output = fopen(pszTargetImageName, "wb");
-        
-        if (hpng->fptr_output == NULL) {
-            fprintf(stderr, "Could not open output image file %s: %s\n", pszTargetImageName, strerror(errno));
-            exit(-1);
-        }
-
-        hpng->png_ptr_write = png_create_write_struct(
-                                    PNG_LIBPNG_VER_STRING, 
-                                    hpng,
-                                    _readwrite_error_handler, 
-                                    NULL);
-        
-        if (hpng->png_ptr_write == NULL) {
-            fprintf(stderr, "Failed to create PNG write struct\n");
-            return NULL;
-        }
-
-        hpng->info_ptr_write = png_create_info_struct(hpng->png_ptr_write);
-        
-        if (hpng->info_ptr_write == NULL) {
-            png_destroy_write_struct(&hpng->png_ptr_write, NULL);
-            fprintf(stderr, "Failed to create PNG info struct\n");
-            return NULL;
-        }
-
-        png_init_io(hpng->png_ptr_write, hpng->fptr_output);
-
-        png_set_compression_level(hpng->png_ptr_write, 5);
-
-        png_set_IHDR(
-                hpng->png_ptr_write, 
-                hpng->info_ptr_write, 
-                hpng->width, 
-                hpng->height,
-                8, 
-                PNG_COLOR_TYPE_RGB, 
-                PNG_INTERLACE_NONE,
-                PNG_COMPRESSION_TYPE_DEFAULT, 
-                PNG_FILTER_TYPE_DEFAULT);
-
-        png_write_info(hpng->png_ptr_write, hpng->info_ptr_write);
-    }
 
     return hpng;
 }
 
-void pngrw_read_close(HPNG hpng)
+HPNG pngwrtr_open(char * pszImageName)
+{
+    HPNG            hpng;
+
+    hpng = (HPNG)malloc(sizeof(HPNG));
+
+    if (hpng == NULL) {
+        fprintf(stderr, "Failed to allocate memory for HPNG handle\n");
+        return NULL;
+    }
+	
+    hpng->fptr_output = fopen(pszImageName, "wb");
+    
+    if (hpng->fptr_output == NULL) {
+        fprintf(stderr, "Could not open output image file %s: %s\n", pszImageName, strerror(errno));
+        exit(-1);
+    }
+
+    hpng->png_ptr_write = png_create_write_struct(
+                                PNG_LIBPNG_VER_STRING, 
+                                hpng,
+                                _readwrite_error_handler, 
+                                NULL);
+    
+    if (hpng->png_ptr_write == NULL) {
+        fprintf(stderr, "Failed to create PNG write struct\n");
+        return NULL;
+    }
+
+    hpng->info_ptr_write = png_create_info_struct(hpng->png_ptr_write);
+    
+    if (hpng->info_ptr_write == NULL) {
+        png_destroy_write_struct(&hpng->png_ptr_write, NULL);
+        fprintf(stderr, "Failed to create PNG info struct\n");
+        return NULL;
+    }
+
+    png_init_io(hpng->png_ptr_write, hpng->fptr_output);
+
+    png_set_compression_level(hpng->png_ptr_write, 5);
+
+    png_set_IHDR(
+            hpng->png_ptr_write, 
+            hpng->info_ptr_write, 
+            hpng->width, 
+            hpng->height,
+            8, 
+            PNG_COLOR_TYPE_RGB, 
+            PNG_INTERLACE_NONE,
+            PNG_COMPRESSION_TYPE_DEFAULT, 
+            PNG_FILTER_TYPE_DEFAULT);
+
+    png_write_info(hpng->png_ptr_write, hpng->info_ptr_write);
+
+    hpng->rowCounter = 0;
+
+    return hpng;
+}
+
+void pngrdr_close(HPNG hpng)
 {
 	png_read_end(hpng->png_ptr_read, NULL);
 	png_destroy_read_struct(&hpng->png_ptr_read, &hpng->info_ptr_read, NULL);
+
+    free(hpng);
 }
 
-void pngrw_write_close(HPNG hpng)
+void pngwrtr_close(HPNG hpng)
 {
     png_write_end(hpng->png_ptr_write, NULL);
     png_destroy_write_struct(&hpng->png_ptr_write, &hpng->info_ptr_write);
+
+    free(hpng);
 }
 
 uint32_t pngrw_get_row_buffer_len(HPNG hpng)
@@ -202,14 +215,14 @@ uint32_t pngrw_get_data_length(HPNG hpng)
     return (uint32_t)(hpng->width * hpng->height * hpng->channels);
 }
 
-uint32_t pngrw_read(HPNG hpng, uint8_t * data, uint32_t dataLength)
+uint32_t pngrdr_read(HPNG hpng, uint8_t * data, uint32_t dataLength)
 {
     uint32_t        index = 0;
 
     hpng->rowCounter = 0;
 
     while (pngrw_has_more_rows(hpng)) {
-        if (pngrw_read_row(hpng, &data[index], (dataLength - index))) {
+        if (pngrdr_read_row(hpng, &data[index], (dataLength - index))) {
             fprintf(stderr, "Failed to read row...\n");
             exit(-1);
         }
@@ -220,7 +233,7 @@ uint32_t pngrw_read(HPNG hpng, uint8_t * data, uint32_t dataLength)
     return index;
 }
 
-int pngrw_read_row(HPNG hpng, uint8_t * rowBuffer, uint32_t bufferLength)
+int pngrdr_read_row(HPNG hpng, uint8_t * rowBuffer, uint32_t bufferLength)
 {
     if (bufferLength < pngrw_get_row_buffer_len(hpng)) {
         fprintf(stderr, "PNG row buffer is not long enough\n");
@@ -234,7 +247,7 @@ int pngrw_read_row(HPNG hpng, uint8_t * rowBuffer, uint32_t bufferLength)
     return 0;
 }
 
-int pngrw_write_row(HPNG hpng, uint8_t * rowBuffer, uint32_t bufferLength)
+int pngwrtr_write_row(HPNG hpng, uint8_t * rowBuffer, uint32_t bufferLength)
 {
     if (bufferLength < pngrw_get_row_buffer_len(hpng)) {
         fprintf(stderr, "PNG row buffer is not long enough\n");
@@ -248,14 +261,14 @@ int pngrw_write_row(HPNG hpng, uint8_t * rowBuffer, uint32_t bufferLength)
     return 0;
 }
 
-uint32_t pngrw_write(HPNG hpng, uint8_t * data, uint32_t dataLength)
+uint32_t pngwrtr_write(HPNG hpng, uint8_t * data, uint32_t dataLength)
 {
     uint32_t        index = 0;
 
     hpng->rowCounter = 0;
 
     while (pngrw_has_more_rows(hpng)) {
-        if (pngrw_write_row(hpng, &data[index], (dataLength - index))) {
+        if (pngwrtr_write_row(hpng, &data[index], (dataLength - index))) {
             fprintf(stderr, "Failed to write row...\n");
             exit(-1);
         }

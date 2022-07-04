@@ -335,7 +335,7 @@ int main(int argc, char ** argv)
 			exit(-1);
     	}
     	
-		hpng = pngrw_open(pszSourceFilename, pszOutputFilename);
+		hpng = pngrdr_open(pszSourceFilename);
 
 		if (hpng == NULL) {
     		fprintf(stderr, "Could not open source image file %s: %s\n", pszInputFilename, strerror(errno));
@@ -349,20 +349,20 @@ int main(int argc, char ** argv)
 		if (imageData == NULL) {
     		fprintf(stderr, "Could not allocate memory for image data\n");
 			rdr_close(hsec);
-			pngrw_read_close(hpng);
+			pngrdr_close(hpng);
 			exit(-1);
 		}
 
-		imageBytesRead = pngrw_read(hpng, imageData, imageDataLen);
+		imageBytesRead = pngrdr_read(hpng, imageData, imageDataLen);
 
 		if (imageBytesRead < imageDataLen) {
 			fprintf(stderr, "Expected %u bytes of image data, but got %u bytes\n", imageDataLen, imageBytesRead);
 			rdr_close(hsec);
-			pngrw_read_close(hpng);
+			pngrdr_close(hpng);
 			exit(-1);
 		}
 
-		pngrw_read_close(hpng);
+		pngrdr_close(hpng);
 
 		numImgBytesRequired = getNumImageBytesRequired(quality);
 
@@ -382,27 +382,24 @@ int main(int argc, char ** argv)
 			}
 		}
 
-		printf("imageDataIndex %u\n", imageDataIndex);
+		hpng = pngwrtr_open(pszOutputFilename);
 		
-		uint32_t imgBytesWritten = pngrw_write(hpng, imageData, imageDataLen);
+		pngwrtr_write(hpng, imageData, imageDataLen);
     	
-		printf("Written %u bytes of image data\n", imgBytesWritten);
-
     	rdr_close(hsec);
-		pngrw_write_close(hpng);
+		pngwrtr_close(hpng);
 
 		free(secretDataBlock);
 		free(imageData);
-		free(hpng);
     }
     else {
 		/*
 		** Extract our secret file from the source image...
 		*/
-		hpng = pngrw_open(pszSourceFilename, NULL);
+		hpng = pngrdr_open(pszSourceFilename);
 
 		if (hpng == NULL) {
-    		fprintf(stderr, "Could not open source image file %s: %s\n", pszInputFilename, strerror(errno));
+    		fprintf(stderr, "Could not open source image file %s: %s\n", pszSourceFilename, strerror(errno));
     		exit(-1);
 		}
 
@@ -412,13 +409,13 @@ int main(int argc, char ** argv)
 
 		if (imageData == NULL) {
     		fprintf(stderr, "Could not allocate memory for image data\n");
-			pngrw_read_close(hpng);
+			pngrdr_close(hpng);
 			exit(-1);
 		}
 
-		imageBytesRead = pngrw_read(hpng, imageData, imageDataLen);
+		imageBytesRead = pngrdr_read(hpng, imageData, imageDataLen);
 
-		pngrw_read_close(hpng);
+		pngrdr_close(hpng);
 
 		hsec = wrtr_open(pszOutputFilename, algo);
 
@@ -434,7 +431,6 @@ int main(int argc, char ** argv)
 		if (secretDataBlock == NULL) {
     		fprintf(stderr, "Could not allocate memory for secret data block\n");
 			free(imageData);
-			pngrw_read_close(hpng);
 			exit(-1);
 		}
 
@@ -442,7 +438,6 @@ int main(int argc, char ** argv)
 			if (wrtr_set_key_aes(hsec, key, keyLength)) {
 				fprintf(stderr, "Failed to set AES key\n");
 				free(imageData);
-				pngrw_read_close(hpng);
 				wrtr_close(hsec);
 				exit(-1);
 			}
@@ -471,7 +466,6 @@ int main(int argc, char ** argv)
 					fprintf(stderr, "Error writing secret block\n");
 					free(secretDataBlock);
 					free(imageData);
-					pngrw_read_close(hpng);
 					wrtr_close(hsec);
 
 					exit(-1);
