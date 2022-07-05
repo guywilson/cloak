@@ -342,8 +342,8 @@ int main(int argc, char ** argv)
     		exit(-1);
 		}
 
-		imageDataLen = pngrw_get_data_length(hpng);
-
+		imageDataLen = pngrdr_get_data_length(hpng);
+		
 		imageData = (uint8_t *)malloc(imageDataLen);
 
 		if (imageData == NULL) {
@@ -382,12 +382,14 @@ int main(int argc, char ** argv)
 			}
 		}
 
-		hpng = pngwrtr_open(pszOutputFilename);
+		pngwrtr_open(hpng, pszOutputFilename);
 		
 		pngwrtr_write(hpng, imageData, imageDataLen);
     	
     	rdr_close(hsec);
 		pngwrtr_close(hpng);
+
+		free(hpng);
 
 		free(secretDataBlock);
 		free(imageData);
@@ -403,7 +405,7 @@ int main(int argc, char ** argv)
     		exit(-1);
 		}
 
-		imageDataLen = pngrw_get_data_length(hpng);
+		imageDataLen = pngrdr_get_data_length(hpng);
 
 		imageData = (uint8_t *)malloc(imageDataLen);
 
@@ -416,6 +418,8 @@ int main(int argc, char ** argv)
 		imageBytesRead = pngrdr_read(hpng, imageData, imageDataLen);
 
 		pngrdr_close(hpng);
+
+		free(hpng);
 
 		hsec = wrtr_open(pszOutputFilename, algo);
 
