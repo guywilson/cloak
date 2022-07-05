@@ -11,6 +11,7 @@
 #include "pngrw.h"
 #include "random_block.h"
 #include "utils.h"
+#include "version.h"
 
 #define MAX_PASSWORD_LENGTH						255
 
@@ -27,11 +28,37 @@ typedef enum {
 merge_quality;
 
 
+int _getProgNameStartPos(char * pszProgName)
+{
+	int i = strlen(pszProgName);
+
+	while (pszProgName[i] != '/' && i > 0) {
+		i--;	
+	}
+
+	if (pszProgName[i] == '/') {
+		i++;
+	}
+
+	return i;
+}
+
+void printVersion(char * pszProgName)
+{
+    printf(
+		"%s version %s built: %s\n\n", 
+		&pszProgName[_getProgNameStartPos(pszProgName)], 
+		getVersion(), 
+		getBuildDate());
+}
+
 void printUsage(char * pszProgName)
 {
-    printf("Using %s:\n", pszProgName);
-    printf("    %s --help (show this help)\n", pszProgName);
-    printf("    %s [options] source-image\n", pszProgName);
+	printVersion(pszProgName);
+
+	printf("Using %s:\n", &pszProgName[_getProgNameStartPos(pszProgName)]);
+    printf("    %s --help (show this help)\n", &pszProgName[_getProgNameStartPos(pszProgName)]);
+    printf("    %s [options] source-image\n", &pszProgName[_getProgNameStartPos(pszProgName)]);
     printf("    options: -o [output file]\n");
     printf("             -f [input file to cloak]\n");
     printf("             -k [keystream file for one-time pad encryption]\n");
@@ -177,6 +204,10 @@ int main(int argc, char ** argv)
                 if (strncmp(arg, "--help", 6) == 0) {
                     printUsage(argv[0]);
                     return 0;
+                }
+                else if (strncmp(arg, "--version", 9) == 0) {
+					printVersion(argv[0]);
+					return 0;
                 }
                 else if (strncmp(arg, "--algo=", 7) == 0) {
                     pszAlgorithm = strdup(&arg[7]);
