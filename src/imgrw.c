@@ -6,7 +6,7 @@
 
 #include <png.h>
 
-#include "pngrw.h"
+#include "imgrw.h"
 #include "cloak_types.h"
 
 struct _img_handle {

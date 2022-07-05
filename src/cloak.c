@@ -8,7 +8,7 @@
 
 #include "cloak_types.h"
 #include "secretrw.h"
-#include "pngrw.h"
+#include "imgrw.h"
 #include "random_block.h"
 #include "utils.h"
 #include "version.h"
