@@ -193,11 +193,11 @@ int main(int argc, char ** argv)
 					else {
 						printf("Unrecognised encryption algorithm '%s'\n", pszAlgorithm);
                     	printUsage(argv[0]);
-						free(pszAlgorithm);
+						dbg_free(pszAlgorithm, __FILE__, __LINE__);
 						return -1;
 					}
 
-					free(pszAlgorithm);
+					dbg_free(pszAlgorithm, __FILE__, __LINE__);
                 }
                 else if (strncmp(arg, "--merge-quality=", 16) == 0) {
                     pszQuality = strdup(&arg[16]);
@@ -217,11 +217,11 @@ int main(int argc, char ** argv)
 					else {
 						printf("Unrecognised merge quality '%s'\n", pszQuality);
                     	printUsage(argv[0]);
-						free(pszQuality);
+						dbg_free(pszQuality, __FILE__, __LINE__);
 						return -1;
 					}
 
-					free(pszQuality);
+					dbg_free(pszQuality, __FILE__, __LINE__);
                 }
                 else if (strncmp(arg, "-f", 2) == 0) {
                     pszInputFilename = strdup(argv[i + 1]);
@@ -383,16 +383,15 @@ int main(int argc, char ** argv)
 		}
 
 		pngwrtr_open(hpng, pszOutputFilename);
-		
 		pngwrtr_write(hpng, imageData, imageDataLen);
-    	
-    	rdr_close(hsec);
 		pngwrtr_close(hpng);
 
-		free(hpng);
+		dbg_free(imageData, __FILE__, __LINE__);
+		dbg_free(hpng, __FILE__, __LINE__);
 
-		free(secretDataBlock);
-		free(imageData);
+    	rdr_close(hsec);
+
+		dbg_free(secretDataBlock, __FILE__, __LINE__);
     }
     else {
 		/*
@@ -419,13 +418,13 @@ int main(int argc, char ** argv)
 
 		pngrdr_close(hpng);
 
-		free(hpng);
+		dbg_free(hpng, __FILE__, __LINE__);
 
 		hsec = wrtr_open(pszOutputFilename, algo);
 
 		if (hsec == NULL) {
 			fprintf(stderr, "Failed to open output file %s\n", pszOutputFilename);
-			free(imageData);
+			dbg_free(imageData, __FILE__, __LINE__);
 			exit(-1);
 		}
 
@@ -434,14 +433,14 @@ int main(int argc, char ** argv)
 
 		if (secretDataBlock == NULL) {
     		fprintf(stderr, "Could not allocate memory for secret data block\n");
-			free(imageData);
+			dbg_free(imageData, __FILE__, __LINE__);
 			exit(-1);
 		}
 
 		if (algo == aes256) {
 			if (wrtr_set_key_aes(hsec, key, keyLength)) {
 				fprintf(stderr, "Failed to set AES key\n");
-				free(imageData);
+				dbg_free(imageData, __FILE__, __LINE__);
 				wrtr_close(hsec);
 				exit(-1);
 			}
@@ -468,8 +467,8 @@ int main(int argc, char ** argv)
 
 				if (rtn < 0) {
 					fprintf(stderr, "Error writing secret block\n");
-					free(secretDataBlock);
-					free(imageData);
+					dbg_free(secretDataBlock, __FILE__, __LINE__);
+					dbg_free(imageData, __FILE__, __LINE__);
 					wrtr_close(hsec);
 
 					exit(-1);
@@ -485,10 +484,10 @@ int main(int argc, char ** argv)
 			}
 		}
 
-		free(imageData);
-		free(secretDataBlock);
-
 		wrtr_close(hsec);
+
+		dbg_free(imageData, __FILE__, __LINE__);
+		dbg_free(secretDataBlock, __FILE__, __LINE__);
     }
 
 	if (algo == aes256) {

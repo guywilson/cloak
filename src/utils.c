@@ -12,6 +12,8 @@
 
 #include "random_block.h"
 
+//#define __DEBUG_MEM
+
 uint32_t getFileSize(FILE * fptr)
 {
 	uint32_t                size;
@@ -141,6 +143,18 @@ void secureFree(void * b, uint32_t len)
 {
     wipeBuffer(b, len);
     free(b);
+}
+
+void dbg_free(void * buffer, const char * pszFile, const int line)
+{
+#ifdef __DEBUG_MEM
+    uint64_t        address;
+
+    address = (uint64_t)buffer;
+
+    printf("Called dbg_free() from %s:%d, free(ing) buffer at address: 0x%llU\n", pszFile, line, address);
+#endif
+    free(buffer);
 }
 
 void xorBuffer(uint8_t * target, uint8_t * source, size_t length)

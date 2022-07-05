@@ -99,7 +99,7 @@ HSECRW rdr_open(char * pszFilename, encryption_algo a)
 		if (err) {
 			fprintf(stderr, "Failed to open cipher with gcrypt\n");
 			fclose(hsec->fptrSecret);
-			free(hsec);
+			dbg_free(hsec, __FILE__, __LINE__);
 			return NULL;
 		}
 
@@ -110,7 +110,7 @@ HSECRW rdr_open(char * pszFilename, encryption_algo a)
 		if (iv == NULL) {
 			fprintf(stderr, "Failed to allocate memory for IV of size %u\n", blklen);
 			fclose(hsec->fptrSecret);
-			free(hsec);
+			dbg_free(hsec, __FILE__, __LINE__);
 			return NULL;
 		}
 
@@ -123,9 +123,9 @@ HSECRW rdr_open(char * pszFilename, encryption_algo a)
 
 		if (err) {
 			fprintf(stderr, "Failed to set IV with gcrypt\n");
-			free(iv);
+			dbg_free(iv, __FILE__, __LINE__);
 			fclose(hsec->fptrSecret);
-			free(hsec);
+			dbg_free(hsec, __FILE__, __LINE__);
 			return NULL;
 		}
 
@@ -136,9 +136,9 @@ HSECRW rdr_open(char * pszFilename, encryption_algo a)
 
 		if (hsec->data == NULL) {
 			fprintf(stderr, "Failed to allocate memory for data of size %u\n", hsec->dataFrameLength);
-			free(iv);
+			dbg_free(iv, __FILE__, __LINE__);
 			fclose(hsec->fptrSecret);
-			free(hsec);
+			dbg_free(hsec, __FILE__, __LINE__);
 			return NULL;
 		}
 
@@ -157,15 +157,15 @@ HSECRW rdr_open(char * pszFilename, encryption_algo a)
 		memcpy(&hsec->data[index], iv, blklen);
 		index += blklen;
 
-		free(iv);
+		dbg_free(iv, __FILE__, __LINE__);
 
 		bytesRead = fread(&hsec->data[index], 1, hsec->fileLength, hsec->fptrSecret);
 
 		if (bytesRead < hsec->fileLength) {
 			fprintf(stderr, "Failed to read file %s, expected %u bytes, got %u bytes\n", pszFilename, hsec->fileLength, bytesRead);
 			fclose(hsec->fptrSecret);
-			free(hsec->data);
-			free(hsec);
+			dbg_free(hsec->data, __FILE__, __LINE__);
+			dbg_free(hsec, __FILE__, __LINE__);
 			return NULL;
 		}
 
@@ -189,7 +189,7 @@ HSECRW rdr_open(char * pszFilename, encryption_algo a)
 		if (hsec->data == NULL) {
 			fprintf(stderr, "Failed to allocate memory for data of size %u\n", hsec->dataFrameLength);
 			fclose(hsec->fptrSecret);
-			free(hsec);
+			dbg_free(hsec, __FILE__, __LINE__);
 			return NULL;
 		}
 
@@ -210,8 +210,8 @@ HSECRW rdr_open(char * pszFilename, encryption_algo a)
 		if (bytesRead < hsec->fileLength) {
 			fprintf(stderr, "Failed to read file %s, expected %u bytes, got %u bytes\n", pszFilename, hsec->fileLength, bytesRead);
 			fclose(hsec->fptrSecret);
-			free(hsec->data);
-			free(hsec);
+			dbg_free(hsec->data, __FILE__, __LINE__);
+			dbg_free(hsec, __FILE__, __LINE__);
 			return NULL;
 		}
 
@@ -237,7 +237,7 @@ int rdr_encrypt_aes256(HSECRW hsec, uint8_t * key, uint32_t keyLength)
 	if (err) {
 		fprintf(stderr, "Failed to set key with gcrypt: %s/%s\n", gcry_strerror(err), gcry_strsource(err));
 		fclose(hsec->fptrSecret);
-		free(hsec);
+		dbg_free(hsec, __FILE__, __LINE__);
 		return -1;
 	}
 
@@ -251,7 +251,7 @@ int rdr_encrypt_aes256(HSECRW hsec, uint8_t * key, uint32_t keyLength)
 	if (err) {
 		fprintf(stderr, "Failed to encrypt with gcrypt: %s\n", gcry_strerror(err));
 		fclose(hsec->fptrSecret);
-		free(hsec);
+		dbg_free(hsec, __FILE__, __LINE__);
 		return -1;
 	}
 
@@ -281,9 +281,6 @@ int rdr_encrypt_xor(HSECRW hsec, char * pszKeystreamFilename)
 		return -1;
 	}
 
-	printf("Data buffer prior to XOR encrypt:\n");
-	hexDump(hsec->data, hsec->encryptionBufferLength);
-
 	for (i = sizeof(CLOAK_HEADER);i < hsec->encryptionBufferLength;i++) {
 		ch = fgetc(hsec->fptrKey);
 
@@ -295,9 +292,6 @@ int rdr_encrypt_xor(HSECRW hsec, char * pszKeystreamFilename)
 
 		hsec->data[i] = (hsec->data[i] ^ (uint8_t)ch);
 	}
-
-	printf("Data buffer after XOR encrypt:\n");
-	hexDump(hsec->data, hsec->encryptionBufferLength);
 
 	fclose(hsec->fptrKey);
 
@@ -314,8 +308,8 @@ void rdr_close(HSECRW hsec)
 		fclose(hsec->fptrKey);
 	}
 
-	//free(hsec->data);
-	free(hsec);
+	//dbg_free(hsec->data);
+	dbg_free(hsec, __FILE__, __LINE__);
 }
 
 uint32_t rdr_get_block_size(HSECRW hsec)
@@ -397,10 +391,10 @@ void wrtr_close(HSECRW hsec)
 	}
 
 	if (hsec->data != NULL) {
-		free(hsec->data);
+		dbg_free(hsec->data, __FILE__, __LINE__);
 	}
 
-	free(hsec);
+	dbg_free(hsec, __FILE__, __LINE__);
 }
 
 uint32_t wrtr_get_block_size(HSECRW hsec)
@@ -449,7 +443,7 @@ int wrtr_set_key_aes(HSECRW hsec, uint8_t * key, uint32_t keyLength)
 		if (err) {
 			fprintf(stderr, "Failed to open cipher with gcrypt\n");
 			fclose(hsec->fptrSecret);
-			free(hsec);
+			dbg_free(hsec, __FILE__, __LINE__);
 			return -1;
 		}
 
@@ -461,7 +455,7 @@ int wrtr_set_key_aes(HSECRW hsec, uint8_t * key, uint32_t keyLength)
 		if (err) {
 			fprintf(stderr, "Failed to set key with gcrypt: %s\n", gcry_strerror(err));
 			fclose(hsec->fptrSecret);
-			free(hsec);
+			dbg_free(hsec, __FILE__, __LINE__);
 			return -1;
 		}
 	}
@@ -514,7 +508,7 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 
 			if (iv == NULL) {
 				fprintf(stderr, "Failed to allocate memory for IV block\n");
-				free(hsec->data);
+				dbg_free(hsec->data, __FILE__, __LINE__);
 				return -1;
 			}
 
@@ -528,14 +522,14 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 
 			if (err) {
 				fprintf(stderr, "Failed to set IV with gcrypt\n");
-				free(iv);
-				free(hsec->data);
+				dbg_free(iv, __FILE__, __LINE__);
+				dbg_free(hsec->data, __FILE__, __LINE__);
 				fclose(hsec->fptrSecret);
-				free(hsec);
+				dbg_free(hsec, __FILE__, __LINE__);
 				return -1;
 			}
 
-			free(iv);
+			dbg_free(iv, __FILE__, __LINE__);
 		}
 
 		memcpy(hsec->data, &buffer[bufferIndex], (hsec->blockSize - bufferIndex));
@@ -559,7 +553,7 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 
 			if (err) {
 				fprintf(stderr, "Failed to decrypt buffer: %s", gcry_strerror(err));
-				free(hsec);
+				dbg_free(hsec, __FILE__, __LINE__);
 				return -1;
 			}
 
