@@ -9,12 +9,25 @@
 #include "imgrw.h"
 #include "cloak_types.h"
 
+#define __BMP_WIN32_HEADER_SIZE                     40
+#define __BMP_OS21X_HEADER_SIZE                     12
+
+typedef enum image_type {
+    img_win32bitmap,
+    img_png,
+    img_unknown
+}
+img_type;
+
 struct _img_handle {
     /*
     ** Common attributes...
     */
     FILE *      fptr_input;
     FILE *      fptr_output;
+
+    img_type    type;
+    uint32_t    rowCounter;
 
     uint32_t	width;
     uint32_t	height;
@@ -31,17 +44,72 @@ struct _img_handle {
 
     int         colourType;
     int         bitDepth;
-    uint32_t    rowCounter;
 
     /*
     ** BMP specific attributes...
     */
-    uint16_t    planes;
-    uint32_t    compressionMethod;
 };
+
+typedef struct __attribute__((__packed__))
+{
+    char            bm[2];
+	uint32_t        fileSize;
+	uint32_t        reserved;
+	uint32_t        dataOffset;
+	
+	uint32_t        dibSize;
+	int32_t         width;
+	int32_t         height;
+	uint16_t        colourPlanes;
+	uint16_t        bitsPerPixel;
+	uint32_t        compressionMethod;
+	uint32_t        rawDataLength;
+	int32_t         horizontalResolution;
+	int32_t         verticalResolution;
+	uint32_t        numPaletteColours;
+	uint32_t        numImportantColours;
+}
+BMP_HEADER;
 
 // Global
 jmp_buf		    jmpbuf;
+
+
+img_type _getImageType(FILE * fptr)
+{
+    size_t          currentPos;
+    img_type        type;
+    uint8_t         header[18];
+    uint32_t        dibSize;
+
+    currentPos = ftell(fptr);
+
+    fseek(fptr, 0, SEEK_SET);
+    fread(header, 1, 18, fptr);
+    fseek(fptr, currentPos, SEEK_SET);
+
+    /*
+    ** Get the size of the header...
+    */
+    memcpy(&dibSize, &header[14], 4);
+
+    if (header[0] == 'B' && header[1] == 'M') {
+        if (dibSize == __BMP_WIN32_HEADER_SIZE) {
+            type = img_win32bitmap;
+        }
+        else {
+            type = img_unknown;
+        }
+    }
+    else if (header[1] == 'P' && header[2] == 'N' && header[3] == 'P') {
+        type = img_png;
+    }
+    else {
+        type = img_unknown;
+    }
+
+    return type;
+}
 
 void _readwrite_error_handler(png_structp png_ptr, png_const_charp msg)
 {
@@ -294,4 +362,107 @@ uint32_t pngwrtr_write(HIMG himg, uint8_t * data, uint32_t dataLength)
     }
 
     return index;
+}
+
+HIMG bmprdr_open(char * pszImageName)
+{
+    HIMG            himg;
+    BMP_HEADER      header;
+
+    himg = (HIMG)malloc(sizeof(struct _img_handle));
+
+    if (himg == NULL) {
+        fprintf(stderr, "Failed to allocate memory for HIMG handle\n");
+        return NULL;
+    }
+
+    himg->fptr_input = fopen(pszImageName, "rb");
+    
+    if (himg->fptr_input == NULL) {
+        fprintf(stderr, "Could not open input image file %s: %s\n", pszImageName, strerror(errno));
+        exit(-1);
+    }
+
+    /*
+    ** Read the header...
+    */
+    fread(&header, 1, sizeof(BMP_HEADER), himg->fptr_input);
+
+    /*
+    ** Validate the bitmap...
+    */
+    if (header.bitsPerPixel != 24) {
+        fprintf(stderr, "Only 24-bit uncompressed RGB bitmaps are supported\n");
+        fclose(himg->fptr_input);
+        free(himg);
+        return NULL;
+    }
+    if (header.compressionMethod != 0) {
+        fprintf(stderr, "Only 24-bit uncompressed RGB bitmaps are supported\n");
+        fclose(himg->fptr_input);
+        free(himg);
+        return NULL;
+    }
+    if (header.numPaletteColours != 0) {
+        fprintf(stderr, "Only 24-bit uncompressed RGB bitmaps are supported\n");
+        fclose(himg->fptr_input);
+        free(himg);
+        return NULL;
+    }
+
+    himg->bitsPerPixel = header.bitsPerPixel;
+    himg->width = header.width;
+    himg->height = header.height;
+    himg->type = img_win32bitmap;
+
+    /*
+    ** Position the file pointer at the start of the image data...
+    */
+    fseek(himg->fptr_input, header.dataOffset, SEEK_SET);
+   
+    return himg;
+}
+
+int bmpwrtr_open(HIMG himg, char * pszImageName)
+{
+    return 0;
+}
+
+void bmprdr_close(HIMG himg)
+{
+    fclose(himg->fptr_input);
+
+    free(himg);
+}
+
+uint32_t bmprdr_get_data_length(HIMG himg)
+{
+    uint32_t            dataLength;
+
+    dataLength = (himg->width * 3);
+
+    /*
+    ** Add padding up to a 4 byte boundry...
+    */
+    dataLength += (dataLength % 4);
+    dataLength *= himg->height;
+
+    return dataLength;
+}
+
+uint32_t bmprdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength)
+{
+    uint32_t            dataLength;
+    uint32_t            bytesRead;
+
+    dataLength = bmprdr_get_data_length(himg);
+
+    if (bufferLength < dataLength) {
+        fprintf(stderr, "Buffer must be at least %u bytes long", dataLength);
+        return 0;
+    }
+
+    bytesRead = fread(data, 1, dataLength, himg->fptr_input);
+
+    return bytesRead;
 }

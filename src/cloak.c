@@ -375,6 +375,28 @@ int main(int argc, char ** argv)
 
 		imageDataLen = pngrdr_get_data_length(himg);
 		
+		/*
+		** Check the image capacity, will our file fit...?
+		*/
+		if (imageDataLen < (rdr_get_data_length(hsec) * getNumImageBytesRequired(quality))) {
+			fprintf(
+				stderr, 
+				"The image %s is not large enough to store the file %s\n", 
+				pszSourceFilename, 
+				pszInputFilename);
+			fprintf(
+				stderr, 
+				"The file %s requires %u of image data, image %s has a maximum capacity of %u bytes\n", 
+				pszInputFilename, 
+				rdr_get_data_length(hsec), 
+				pszSourceFilename, 
+				(imageDataLen / getNumImageBytesRequired(quality)));
+
+			rdr_close(hsec);
+			pngrdr_close(himg);
+			exit(-1);
+		}
+
 		imageData = (uint8_t *)malloc(imageDataLen);
 
 		if (imageData == NULL) {
