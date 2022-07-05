@@ -292,9 +292,9 @@ int main(int argc, char ** argv)
     	if (strcmp(pszExtension, "png") == 0) {
     		printf("Processing PNG image file %s\n", pszSourceFilename);
     	}
-//     	else if (strcmp(pszExtension, "bmp") == 0) {
-//     		printf("Processing BMP image file %s\n", pszSourceFilename);
-//     	}
+    	else if (strcmp(pszExtension, "bmp") == 0) {
+    		printf("Processing BMP image file %s\n", pszSourceFilename);
+    	}
 //     	else if (strcmp(pszExtension, "wav") == 0) {
 //     		printf("Processing WAV sound file %s\n", pszSourceFilename);
 //     	}
@@ -394,6 +394,7 @@ int main(int argc, char ** argv)
 
 			rdr_close(hsec);
 			pngrdr_close(himg);
+			free(secretDataBlock);
 			exit(-1);
 		}
 

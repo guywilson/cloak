@@ -19,37 +19,6 @@ typedef enum image_type {
 }
 img_type;
 
-struct _img_handle {
-    /*
-    ** Common attributes...
-    */
-    FILE *      fptr_input;
-    FILE *      fptr_output;
-
-    img_type    type;
-    uint32_t    rowCounter;
-
-    uint32_t	width;
-    uint32_t	height;
-    uint8_t     channels;
-    uint16_t    bitsPerPixel;
-
-    /*
-    ** PNG specific attributes...
-    */
-    png_structp png_ptr_read;
-    png_structp png_ptr_write;
-	png_infop	info_ptr_read;
-	png_infop	info_ptr_write;
-
-    int         colourType;
-    int         bitDepth;
-
-    /*
-    ** BMP specific attributes...
-    */
-};
-
 typedef struct __attribute__((__packed__))
 {
     char            bm[2];
@@ -71,22 +40,58 @@ typedef struct __attribute__((__packed__))
 }
 BMP_HEADER;
 
+struct _img_handle {
+    /*
+    ** Common attributes...
+    */
+    FILE *          fptr_input;
+    FILE *          fptr_output;
+
+    img_type        type;
+    uint32_t        rowCounter;
+
+    uint32_t	    width;
+    uint32_t	    height;
+    uint8_t         channels;
+    uint16_t        bitsPerPixel;
+
+    /*
+    ** PNG specific attributes...
+    */
+    png_structp     png_ptr_read;
+    png_structp     png_ptr_write;
+	png_infop	    info_ptr_read;
+	png_infop	    info_ptr_write;
+
+    int             colourType;
+    int             bitDepth;
+
+    /*
+    ** BMP specific attributes...
+    */
+    BMP_HEADER *    pHeader;
+};
+
 // Global
 jmp_buf		    jmpbuf;
 
 
-img_type _getImageType(FILE * fptr)
+img_type _getImageType(char * pszImageName)
 {
-    size_t          currentPos;
+    FILE *          fptr_input;
     img_type        type;
     uint8_t         header[18];
     uint32_t        dibSize;
 
-    currentPos = ftell(fptr);
+    fptr_input = fopen(pszImageName, "rb");
+    
+    if (fptr_input == NULL) {
+        fprintf(stderr, "Could not open input image file %s: %s\n", pszImageName, strerror(errno));
+        exit(-1);
+    }
 
-    fseek(fptr, 0, SEEK_SET);
-    fread(header, 1, 18, fptr);
-    fseek(fptr, currentPos, SEEK_SET);
+    fread(header, 1, 18, fptr_input);
+    fclose(fptr_input);
 
     /*
     ** Get the size of the header...
@@ -119,6 +124,80 @@ void _readwrite_error_handler(png_structp png_ptr, png_const_charp msg)
     longjmp(jmpbuf, 1);
 }
 
+
+HIMG imgrdr_open(char * pszImageName)
+{
+    img_type            type;
+
+    type = _getImageType(pszImageName);
+
+    if (type == img_png) {
+        return pngrdr_open(pszImageName);
+    }
+    else if (type == img_win32bitmap) {
+        return bmprdr_open(pszImageName);
+    }
+    else {
+        fprintf(stderr, "Cannot open %s: Unsupported image type\n", pszImageName);
+        return NULL;
+    }
+}
+
+void imgrdr_close(HIMG himg)
+{
+    if (himg->type == img_png) {
+        pngrdr_close(himg);
+    }
+    else if (himg->type == img_win32bitmap) {
+        bmprdr_close(himg);
+    }
+}
+
+void imgwrtr_close(HIMG himg)
+{
+    if (himg->type == img_png) {
+        pngwrtr_close(himg);
+    }
+    else if (himg->type == img_win32bitmap) {
+        bmpwrtr_close(himg);
+    }
+}
+
+uint32_t imgrdr_get_data_length(HIMG himg)
+{
+    if (himg->type == img_png) {
+        return pngrdr_get_data_length(himg);
+    }
+    else if (himg->type == img_win32bitmap) {
+        return bmprdr_get_data_length(himg);
+    }
+
+    return 0;
+}
+
+uint32_t imgrdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength)
+{
+    if (himg->type == img_png) {
+        return pngrdr_read(himg, data, bufferLength);
+    }
+    else if (himg->type == img_win32bitmap) {
+        return bmprdr_read(himg, data, bufferLength);
+    }
+
+    return 0;
+}
+
+uint32_t imgwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength)
+{
+    if (himg->type == img_png) {
+        return pngwrtr_write(himg, data, bufferLength);
+    }
+    else if (himg->type == img_win32bitmap) {
+        return bmpwrtr_write(himg, data, bufferLength);
+    }
+
+    return 0;
+}
 
 HIMG pngrdr_open(char * pszImageName)
 {
@@ -182,6 +261,8 @@ HIMG pngrdr_open(char * pszImageName)
 	himg->colourType =      png_get_color_type(himg->png_ptr_read, himg->info_ptr_read);
 
     himg->bitsPerPixel = himg->bitDepth * himg->channels;
+
+    himg->type = img_png;
 
     if(himg->bitDepth == 16) {
         png_set_strip_16(himg->png_ptr_read);
@@ -367,12 +448,20 @@ uint32_t pngwrtr_write(HIMG himg, uint8_t * data, uint32_t dataLength)
 HIMG bmprdr_open(char * pszImageName)
 {
     HIMG            himg;
-    BMP_HEADER      header;
+    BMP_HEADER *    pHeader;
+
+    pHeader = (BMP_HEADER *)malloc(sizeof(BMP_HEADER));
+
+    if (pHeader == NULL) {
+        fprintf(stderr, "Failed to allocate memory for bitmap header\n");
+        return NULL;
+    }
 
     himg = (HIMG)malloc(sizeof(struct _img_handle));
 
     if (himg == NULL) {
         fprintf(stderr, "Failed to allocate memory for HIMG handle\n");
+        free(pHeader);
         return NULL;
     }
 
@@ -380,59 +469,98 @@ HIMG bmprdr_open(char * pszImageName)
     
     if (himg->fptr_input == NULL) {
         fprintf(stderr, "Could not open input image file %s: %s\n", pszImageName, strerror(errno));
+        free(pHeader);
+        free(himg);
         exit(-1);
     }
 
     /*
     ** Read the header...
     */
-    fread(&header, 1, sizeof(BMP_HEADER), himg->fptr_input);
+    fread(pHeader, 1, sizeof(BMP_HEADER), himg->fptr_input);
 
     /*
     ** Validate the bitmap...
     */
-    if (header.bitsPerPixel != 24) {
+    if (pHeader->bitsPerPixel != 24) {
         fprintf(stderr, "Only 24-bit uncompressed RGB bitmaps are supported\n");
         fclose(himg->fptr_input);
+        free(pHeader);
         free(himg);
         return NULL;
     }
-    if (header.compressionMethod != 0) {
+    if (pHeader->compressionMethod != 0) {
         fprintf(stderr, "Only 24-bit uncompressed RGB bitmaps are supported\n");
         fclose(himg->fptr_input);
+        free(pHeader);
         free(himg);
         return NULL;
     }
-    if (header.numPaletteColours != 0) {
+    if (pHeader->numPaletteColours != 0) {
         fprintf(stderr, "Only 24-bit uncompressed RGB bitmaps are supported\n");
         fclose(himg->fptr_input);
+        free(pHeader);
         free(himg);
         return NULL;
     }
 
-    himg->bitsPerPixel = header.bitsPerPixel;
-    himg->width = header.width;
-    himg->height = header.height;
+    himg->bitsPerPixel = pHeader->bitsPerPixel;
+    himg->width = pHeader->width;
+    himg->height = pHeader->height;
     himg->type = img_win32bitmap;
+
+    himg->pHeader = pHeader;
 
     /*
     ** Position the file pointer at the start of the image data...
     */
-    fseek(himg->fptr_input, header.dataOffset, SEEK_SET);
+    fseek(himg->fptr_input, pHeader->dataOffset, SEEK_SET);
    
     return himg;
 }
 
 int bmpwrtr_open(HIMG himg, char * pszImageName)
 {
+    uint32_t        bytesWritten;
+
+    himg->fptr_output = fopen(pszImageName, "wb");
+    
+    if (himg->fptr_output == NULL) {
+        fprintf(stderr, "Could not open output image file %s: %s\n", pszImageName, strerror(errno));
+        return -1;
+    }
+
+    /*
+    ** This should be the case anyhow, but start the image data
+    ** immediately after the header...
+    */
+    himg->pHeader->dataOffset = sizeof(BMP_HEADER);
+
+    /*
+    ** Write header...
+    */
+    bytesWritten = fwrite(himg->pHeader, 1, sizeof(BMP_HEADER), himg->fptr_output);
+
+    if (bytesWritten < sizeof(BMP_HEADER)) {
+        fprintf(stderr, "Failed to write bitmap header\n");
+        free(himg->pHeader);
+        fclose(himg->fptr_output);
+        return -1;
+    }
+
+    free(himg->pHeader);
+
     return 0;
 }
 
 void bmprdr_close(HIMG himg)
 {
     fclose(himg->fptr_input);
+}
 
-    free(himg);
+void bmpwrtr_close(HIMG himg)
+{
+    fclose(himg->fptr_output);
 }
 
 uint32_t bmprdr_get_data_length(HIMG himg)
@@ -465,4 +593,21 @@ uint32_t bmprdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength)
     bytesRead = fread(data, 1, dataLength, himg->fptr_input);
 
     return bytesRead;
+}
+
+uint32_t bmpwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength)
+{
+    uint32_t            dataLength;
+    uint32_t            bytesWritten;
+
+    dataLength = bmprdr_get_data_length(himg);
+
+    if (bufferLength < dataLength) {
+        fprintf(stderr, "Buffer must be at least %u bytes long", dataLength);
+        return 0;
+    }
+
+    bytesWritten = fwrite(data, 1, dataLength, himg->fptr_output);
+
+    return bytesWritten;
 }
