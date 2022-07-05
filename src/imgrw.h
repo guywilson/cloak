@@ -8,6 +8,7 @@ struct _img_handle;
 typedef struct _img_handle *    HIMG;
 
 HIMG        imgrdr_open(char * pszImageName);
+int         imgwrtr_open(HIMG himg, char * pszImageName);
 void        imgrdr_close(HIMG himg);
 void        imgwrtr_close(HIMG himg);
 uint32_t    imgrdr_get_data_length(HIMG himg);

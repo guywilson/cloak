@@ -366,14 +366,14 @@ int main(int argc, char ** argv)
 			exit(-1);
     	}
     	
-		himg = pngrdr_open(pszSourceFilename);
+		himg = imgrdr_open(pszSourceFilename);
 
 		if (himg == NULL) {
     		fprintf(stderr, "Could not open source image file %s: %s\n", pszInputFilename, strerror(errno));
     		exit(-1);
 		}
 
-		imageDataLen = pngrdr_get_data_length(himg);
+		imageDataLen = imgrdr_get_data_length(himg);
 		
 		/*
 		** Check the image capacity, will our file fit...?
@@ -393,7 +393,7 @@ int main(int argc, char ** argv)
 				(imageDataLen / getNumImageBytesRequired(quality)));
 
 			rdr_close(hsec);
-			pngrdr_close(himg);
+			imgrdr_close(himg);
 			free(secretDataBlock);
 			exit(-1);
 		}
@@ -403,20 +403,20 @@ int main(int argc, char ** argv)
 		if (imageData == NULL) {
     		fprintf(stderr, "Could not allocate memory for image data\n");
 			rdr_close(hsec);
-			pngrdr_close(himg);
+			imgrdr_close(himg);
 			exit(-1);
 		}
 
-		imageBytesRead = pngrdr_read(himg, imageData, imageDataLen);
+		imageBytesRead = imgrdr_read(himg, imageData, imageDataLen);
 
 		if (imageBytesRead < imageDataLen) {
 			fprintf(stderr, "Expected %u bytes of image data, but got %u bytes\n", imageDataLen, imageBytesRead);
 			rdr_close(hsec);
-			pngrdr_close(himg);
+			imgrdr_close(himg);
 			exit(-1);
 		}
 
-		pngrdr_close(himg);
+		imgrdr_close(himg);
 
 		numImgBytesRequired = getNumImageBytesRequired(quality);
 
@@ -436,9 +436,9 @@ int main(int argc, char ** argv)
 			}
 		}
 
-		pngwrtr_open(himg, pszOutputFilename);
-		pngwrtr_write(himg, imageData, imageDataLen);
-		pngwrtr_close(himg);
+		imgwrtr_open(himg, pszOutputFilename);
+		imgwrtr_write(himg, imageData, imageDataLen);
+		imgwrtr_close(himg);
 
 		dbg_free(imageData, __FILE__, __LINE__);
 		dbg_free(himg, __FILE__, __LINE__);
@@ -451,26 +451,26 @@ int main(int argc, char ** argv)
 		/*
 		** Extract our secret file from the source image...
 		*/
-		himg = pngrdr_open(pszSourceFilename);
+		himg = imgrdr_open(pszSourceFilename);
 
 		if (himg == NULL) {
     		fprintf(stderr, "Could not open source image file %s: %s\n", pszSourceFilename, strerror(errno));
     		exit(-1);
 		}
 
-		imageDataLen = pngrdr_get_data_length(himg);
+		imageDataLen = imgrdr_get_data_length(himg);
 
 		imageData = (uint8_t *)malloc(imageDataLen);
 
 		if (imageData == NULL) {
     		fprintf(stderr, "Could not allocate memory for image data\n");
-			pngrdr_close(himg);
+			imgrdr_close(himg);
 			exit(-1);
 		}
 
-		imageBytesRead = pngrdr_read(himg, imageData, imageDataLen);
+		imageBytesRead = imgrdr_read(himg, imageData, imageDataLen);
 
-		pngrdr_close(himg);
+		imgrdr_close(himg);
 
 		dbg_free(himg, __FILE__, __LINE__);
 

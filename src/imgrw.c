@@ -106,7 +106,7 @@ img_type _getImageType(char * pszImageName)
             type = img_unknown;
         }
     }
-    else if (header[1] == 'P' && header[2] == 'N' && header[3] == 'P') {
+    else if (header[1] == 'P' && header[2] == 'N' && header[3] == 'G') {
         type = img_png;
     }
     else {
@@ -141,6 +141,18 @@ HIMG imgrdr_open(char * pszImageName)
         fprintf(stderr, "Cannot open %s: Unsupported image type\n", pszImageName);
         return NULL;
     }
+}
+
+int imgwrtr_open(HIMG himg, char * pszImageName)
+{
+    if (himg->type == img_png) {
+        return pngwrtr_open(himg, pszImageName);
+    }
+    else if (himg->type == img_win32bitmap) {
+        return bmpwrtr_open(himg, pszImageName);
+    }
+
+    return 0;
 }
 
 void imgrdr_close(HIMG himg)
