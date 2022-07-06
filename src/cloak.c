@@ -383,7 +383,7 @@ int main(int argc, char ** argv)
             getNumImageBytesRequired(quality);
         
         printf(
-            "Image %s has a merge capacity of %u bytes\n", 
+            "Image %s has a merge capacity of %u bytes at the specified quality\n", 
             pszSourceFilename, 
             imageCapacity);
         
@@ -398,11 +398,14 @@ int main(int argc, char ** argv)
 				pszInputFilename);
 			fprintf(
 				stderr, 
-				"The file %s requires %u of image data, image %s has a max capacity of %u bytes\n", 
+				"The file %s requires %u of image data, image %s has a max capacity of %u bytes.\n", 
 				pszInputFilename, 
 				rdr_get_data_length(hsec), 
 				pszSourceFilename, 
 				(imageDataLen / getNumImageBytesRequired(quality)));
+			fprintf(
+				stderr, 
+				"Consider compressing the file, or using a lower quality setting.\n");
 
 			rdr_close(hsec);
 			imgrdr_close(himg);
