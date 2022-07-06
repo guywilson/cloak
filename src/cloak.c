@@ -444,7 +444,7 @@ int main(int argc, char ** argv)
 		imgrdr_close(himg);
 		imgrdr_destroy_handle(himg);
 
-		dbg_free(imageData, __FILE__, __LINE__);
+//		dbg_free(imageData, __FILE__, __LINE__);
 
     	rdr_close(hsec);
     }
