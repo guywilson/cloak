@@ -6,7 +6,7 @@ Hide and extract an encrypted file within an RGB (24-bit) bitmap or PNG image.
 
 The idea is simple, a 24-bit colour bitmap or PNG image uses 3 bytes for each pixel in the image, one each for Red, Green and Blue, so each colour channel is represented by a value between 0 - 255. If we encode a file in the least significant bits (LSBs) of the image data, there will be no visible difference in the image when displayed. At an encoding depth of 1-bit per byte, we need 8 bytes of image data to encode 1 byte of our file.
 
-Cloak can encrypt your 'secret' data file using either the AES-256 cipher (in CBC mode) or XOR encryption prior to encoding it in your chosen image. With AES encryption, you will be prompted to enter a password (max 256 chars), the SHA-256 hash of which is used as the key for the pass through AES. With XOR encryption, you must supply a keystream file using the -k option.
+Cloak can encrypt your 'secret' data file using either the AES-256 (Rijndael) cipher (in CBC mode) or XOR encryption prior to encoding it in your chosen image. With AES encryption, you will be prompted to enter a password (max 256 chars), the SHA-256 hash of which is used as the key for the pass through AES. With XOR encryption, you must supply a keystream file using the -k option.
 
 With XOR encryption, the advantage of this mechanism is you can employ a one-time-pad scheme, which providing you stick to the rules for a one-time-pad encryption scheme, it is mathematically proven to be unbreakable.
 
