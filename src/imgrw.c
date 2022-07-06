@@ -82,7 +82,7 @@ img_type _getImageType(char * pszImageName)
 {
     FILE *          fptr_input;
     img_type        type;
-    uint8_t         header[HEADER_LOOKAHED_BUFFER_LEN];
+    uint8_t         header[HEADER_LOOKAHEAD_BUFFER_LEN];
     uint32_t        dibSize;
     uint32_t        bytesRead;
 
@@ -93,9 +93,9 @@ img_type _getImageType(char * pszImageName)
         exit(-1);
     }
 
-    bytesRead = fread(header, 1, HEADER_LOOKAHED_BUFFER_LEN, fptr_input);
+    bytesRead = fread(header, 1, HEADER_LOOKAHEAD_BUFFER_LEN, fptr_input);
     
-    if (bytesRead < HEADER_LOOKAHED_BUFFER_LEN) {
+    if (bytesRead < HEADER_LOOKAHEAD_BUFFER_LEN) {
         fprintf(stderr, "Failed to read image header from %s\n", pszImageName);
         exit(-1);
     }
