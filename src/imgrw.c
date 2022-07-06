@@ -14,6 +14,8 @@
 
 #define HEADER_LOOKAHEAD_BUFFER_LEN                 18
 
+#define HANDLE_POOL_SIZE                            8
+
 typedef enum image_type {
     img_win32bitmap,
     img_png,
@@ -46,6 +48,8 @@ struct _img_handle {
     /*
     ** Common attributes...
     */
+    uint16_t        _id;
+
     FILE *          fptr_input;
     FILE *          fptr_output;
 
@@ -74,9 +78,46 @@ struct _img_handle {
     BMP_HEADER *    pHeader;
 };
 
+struct _img_handle      _imageHandlePool[HANDLE_POOL_SIZE];
+uint16_t                _nextId = 0x0000;
+
 // Global
 jmp_buf		    jmpbuf;
 
+HIMG _allocateHandle()
+{
+    HIMG        himg = NULL;
+    int         i;
+
+    if (_nextId == 0x0000) {
+        for (i = 0;i < HANDLE_POOL_SIZE;i++) {
+            _imageHandlePool[i]._id = 0x0000;
+        }
+
+        _nextId++;
+    }
+
+    for (i = 0;i < HANDLE_POOL_SIZE;i++) {
+        if (_imageHandlePool[i]._id == 0x0000) {
+            himg = &_imageHandlePool[i];
+            himg->_id = _nextId++;
+            break;
+        }
+    }
+
+    return himg;
+}
+
+void _freeHandle(HIMG himg)
+{
+    int         i;
+
+    for (i = 0;i < HANDLE_POOL_SIZE;i++) {
+        if (himg->_id == _imageHandlePool[i]._id) {
+            himg->_id = 0x0000;
+        }
+    }
+}
 
 img_type _getImageType(char * pszImageName)
 {
@@ -184,6 +225,11 @@ void imgwrtr_close(HIMG himg)
     }
 }
 
+void imgrdr_destroy_handle(HIMG himg)
+{
+    _freeHandle(himg);
+}
+
 uint32_t imgrdr_get_data_length(HIMG himg)
 {
     if (himg->type == img_png) {
@@ -224,7 +270,7 @@ HIMG pngrdr_open(char * pszImageName)
 {
     HIMG            himg;
 
-    himg = (HIMG)malloc(sizeof(struct _img_handle));
+    himg = _allocateHandle();
 
     if (himg == NULL) {
         fprintf(stderr, "Failed to allocate memory for HIMG handle\n");
@@ -479,7 +525,7 @@ HIMG bmprdr_open(char * pszImageName)
         return NULL;
     }
 
-    himg = (HIMG)malloc(sizeof(struct _img_handle));
+    himg = _allocateHandle();
 
     if (himg == NULL) {
         fprintf(stderr, "Failed to allocate memory for HIMG handle\n");

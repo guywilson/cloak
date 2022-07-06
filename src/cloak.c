@@ -442,9 +442,9 @@ int main(int argc, char ** argv)
 		imgwrtr_close(himg);
 
 		imgrdr_close(himg);
+		imgrdr_destroy_handle(himg);
 
 		dbg_free(imageData, __FILE__, __LINE__);
-		dbg_free(himg, __FILE__, __LINE__);
 
     	rdr_close(hsec);
     }
@@ -473,7 +473,7 @@ int main(int argc, char ** argv)
 
 		imgrdr_close(himg);
 
-		dbg_free(himg, __FILE__, __LINE__);
+		imgrdr_destroy_handle(himg);
 
 		hsec = wrtr_open(pszOutputFilename, algo);
 

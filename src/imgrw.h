@@ -11,6 +11,7 @@ HIMG        imgrdr_open(char * pszImageName);
 int         imgwrtr_open(HIMG himg, char * pszImageName);
 void        imgrdr_close(HIMG himg);
 void        imgwrtr_close(HIMG himg);
+void        imgrdr_destroy_handle(HIMG himg);
 uint32_t    imgrdr_get_data_length(HIMG himg);
 uint32_t    imgrdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength);
 uint32_t    imgwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength);
