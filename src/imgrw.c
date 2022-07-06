@@ -667,6 +667,8 @@ HIMG bmpwrtr_open(char * pszImageName)
     */
     himg->pHeader->dataOffset = sizeof(BMP_HEADER);
 
+    himg->type = img_win32bitmap;
+
     return himg;
 }
 
