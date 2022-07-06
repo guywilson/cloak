@@ -12,6 +12,8 @@
 #define __BMP_WIN32_HEADER_SIZE                     40
 #define __BMP_OS21X_HEADER_SIZE                     12
 
+#define HEADER_LOOKAHEAD_BUFFER_LEN                 18
+
 typedef enum image_type {
     img_win32bitmap,
     img_png,
@@ -80,8 +82,9 @@ img_type _getImageType(char * pszImageName)
 {
     FILE *          fptr_input;
     img_type        type;
-    uint8_t         header[18];
+    uint8_t         header[HEADER_LOOKAHED_BUFFER_LEN];
     uint32_t        dibSize;
+    uint32_t        bytesRead;
 
     fptr_input = fopen(pszImageName, "rb");
     
@@ -90,7 +93,13 @@ img_type _getImageType(char * pszImageName)
         exit(-1);
     }
 
-    fread(header, 1, 18, fptr_input);
+    bytesRead = fread(header, 1, HEADER_LOOKAHED_BUFFER_LEN, fptr_input);
+    
+    if (bytesRead < HEADER_LOOKAHED_BUFFER_LEN) {
+        fprintf(stderr, "Failed to read image header from %s\n", pszImageName);
+        exit(-1);
+    }
+    
     fclose(fptr_input);
 
     /*
@@ -461,6 +470,7 @@ HIMG bmprdr_open(char * pszImageName)
 {
     HIMG            himg;
     BMP_HEADER *    pHeader;
+    uint32_t        bytesRead;
 
     pHeader = (BMP_HEADER *)malloc(sizeof(BMP_HEADER));
 
@@ -489,7 +499,14 @@ HIMG bmprdr_open(char * pszImageName)
     /*
     ** Read the header...
     */
-    fread(pHeader, 1, sizeof(BMP_HEADER), himg->fptr_input);
+    bytesRead = fread(pHeader, 1, sizeof(BMP_HEADER), himg->fptr_input);
+    
+    if (bytesRead < sizeof(BMP_HEADER)) {
+        fprintf(stderr, "Could not read header from image file %s: %s\n", pszImageName, strerror(errno));
+        free(pHeader);
+        free(himg);
+        exit(-1);
+    }
 
     /*
     ** Validate the bitmap...

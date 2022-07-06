@@ -9,7 +9,6 @@
 #include "cloak_types.h"
 #include "secretrw.h"
 #include "imgrw.h"
-#include "random_block.h"
 #include "utils.h"
 #include "version.h"
 
@@ -329,6 +328,7 @@ int main(int argc, char ** argv)
 	uint32_t		secretBytesRemaining = 0;
 	uint32_t		imageBytesRead;
 	uint32_t		imageDataIndex = 0U;
+    uint32_t        imageCapacity;
 	int				numImgBytesRequired = 0;
 	int				secretBufferIndex = 0;
 	int				rtn;
@@ -370,15 +370,27 @@ int main(int argc, char ** argv)
 
 		if (himg == NULL) {
     		fprintf(stderr, "Could not open source image file %s: %s\n", pszInputFilename, strerror(errno));
+            free(secretDataBlock);
     		exit(-1);
 		}
 
 		imageDataLen = imgrdr_get_data_length(himg);
 		
+		numImgBytesRequired = getNumImageBytesRequired(quality);
+        
+        imageCapacity = 
+            rdr_get_data_length(hsec) * 
+            getNumImageBytesRequired(quality);
+        
+        printf(
+            "Image %s has a merge capacity of %u bytes\n", 
+            pszSourceFilename, 
+            imageCapacity);
+        
 		/*
 		** Check the image capacity, will our file fit...?
 		*/
-		if (imageDataLen < (rdr_get_data_length(hsec) * getNumImageBytesRequired(quality))) {
+		if (imageDataLen < imageCapacity) {
 			fprintf(
 				stderr, 
 				"The image %s is not large enough to store the file %s\n", 
@@ -386,7 +398,7 @@ int main(int argc, char ** argv)
 				pszInputFilename);
 			fprintf(
 				stderr, 
-				"The file %s requires %u of image data, image %s has a maximum capacity of %u bytes\n", 
+				"The file %s requires %u of image data, image %s has a max capacity of %u bytes\n", 
 				pszInputFilename, 
 				rdr_get_data_length(hsec), 
 				pszSourceFilename, 
@@ -417,8 +429,6 @@ int main(int argc, char ** argv)
 		}
 
 		imgrdr_close(himg);
-
-		numImgBytesRequired = getNumImageBytesRequired(quality);
 
 		while (rdr_has_more_blocks(hsec)) {
 			secretBytesRemaining = rdr_read_encrypted_block(hsec, secretDataBlock, secretDataBlockLen);
