@@ -319,7 +319,8 @@ int main(int argc, char ** argv)
 	}
 
 	HSECRW			hsec;
-	HIMG			himg;
+	HIMG			himgRead;
+	HIMG			himgWrite;
 	uint8_t 		secretDataBlock[SECRETRW_BLOCK_SIZE];
 	uint8_t *		imageData;
 	uint8_t			secretByte = 0x00;
@@ -332,6 +333,7 @@ int main(int argc, char ** argv)
 	int				numImgBytesRequired = 0;
 	int				secretBufferIndex = 0;
 	int				rtn;
+	img_type		imageType;
 
     if (isMerge) {
 		hsec = rdr_open(pszInputFilename, algo);
@@ -358,14 +360,14 @@ int main(int argc, char ** argv)
 
 		secretDataBlockLen = rdr_get_block_size(hsec);
     	
-		himg = imgrdr_open(pszSourceFilename);
+		himgRead = imgrdr_open(pszSourceFilename);
 
-		if (himg == NULL) {
+		if (himgRead == NULL) {
     		fprintf(stderr, "Could not open source image file %s: %s\n", pszInputFilename, strerror(errno));
     		exit(-1);
 		}
 
-		imageDataLen = imgrdr_get_data_length(himg);
+		imageDataLen = imgrdr_get_data_length(himgRead);
 		
 		numImgBytesRequired = getNumImageBytesRequired(quality);
         
@@ -399,7 +401,7 @@ int main(int argc, char ** argv)
 				"Consider compressing the file, or using a lower quality setting.\n");
 
 			rdr_close(hsec);
-			imgrdr_close(himg);
+			imgrdr_close(himgRead);
 			exit(-1);
 		}
 
@@ -408,16 +410,16 @@ int main(int argc, char ** argv)
 		if (imageData == NULL) {
     		fprintf(stderr, "Could not allocate memory for image data\n");
 			rdr_close(hsec);
-			imgrdr_close(himg);
+			imgrdr_close(himgRead);
 			exit(-1);
 		}
 
-		imageBytesRead = imgrdr_read(himg, imageData, imageDataLen);
+		imageBytesRead = imgrdr_read(himgRead, imageData, imageDataLen);
 
 		if (imageBytesRead < imageDataLen) {
 			fprintf(stderr, "Expected %u bytes of image data, but got %u bytes\n", imageDataLen, imageBytesRead);
 			rdr_close(hsec);
-			imgrdr_close(himg);
+			imgrdr_close(himgRead);
 			exit(-1);
 		}
 
@@ -437,12 +439,20 @@ int main(int argc, char ** argv)
 			}
 		}
 
-		imgwrtr_open(himg, pszOutputFilename);
-		imgwrtr_write(himg, imageData, imageDataLen);
-		imgwrtr_close(himg);
+		imageType = imgrdr_get_type(himgRead);
 
-		imgrdr_close(himg);
-		imgrdr_destroy_handle(himg);
+		himgWrite = imgwrtr_open(pszOutputFilename, imageType);
+
+		imgrdr_copy_header(himgWrite, himgRead);
+
+		imgrdr_close(himgRead);
+		imgrdr_destroy_handle(himgRead);
+
+		imgwrtr_write_header(himgWrite);
+		imgwrtr_write(himgWrite, imageData, imageDataLen);
+		imgwrtr_close(himgWrite);
+
+		imgrdr_destroy_handle(himgWrite);
 
 		dbg_free(imageData, __FILE__, __LINE__);
 
@@ -452,28 +462,28 @@ int main(int argc, char ** argv)
 		/*
 		** Extract our secret file from the source image...
 		*/
-		himg = imgrdr_open(pszSourceFilename);
+		himgRead = imgrdr_open(pszSourceFilename);
 
-		if (himg == NULL) {
+		if (himgRead == NULL) {
     		fprintf(stderr, "Could not open source image file %s: %s\n", pszSourceFilename, strerror(errno));
     		exit(-1);
 		}
 
-		imageDataLen = imgrdr_get_data_length(himg);
+		imageDataLen = imgrdr_get_data_length(himgRead);
 
 		imageData = (uint8_t *)malloc(imageDataLen);
 
 		if (imageData == NULL) {
     		fprintf(stderr, "Could not allocate memory for image data\n");
-			imgrdr_close(himg);
+			imgrdr_close(himgRead);
 			exit(-1);
 		}
 
-		imageBytesRead = imgrdr_read(himg, imageData, imageDataLen);
+		imageBytesRead = imgrdr_read(himgRead, imageData, imageDataLen);
 
-		imgrdr_close(himg);
+		imgrdr_close(himgRead);
 
-		imgrdr_destroy_handle(himg);
+		imgrdr_destroy_handle(himgRead);
 
 		hsec = wrtr_open(pszOutputFilename, algo);
 
@@ -537,7 +547,7 @@ int main(int argc, char ** argv)
     }
 
 	if (algo == aes256) {
-//		secureFree(key, keyBufferLen);
+		secureFree(key, keyBufferLen);
 	}
 
 	return 0;

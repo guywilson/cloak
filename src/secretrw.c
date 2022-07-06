@@ -307,7 +307,7 @@ void rdr_close(HSECRW hsec)
 		fclose(hsec->fptrKey);
 	}
 
-	//dbg_free(hsec->data);
+	dbg_free(hsec->data, __FILE__, __LINE__);
 	dbg_free(hsec, __FILE__, __LINE__);
 }
 

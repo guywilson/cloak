@@ -16,13 +16,6 @@
 
 #define HANDLE_POOL_SIZE                            8
 
-typedef enum image_type {
-    img_win32bitmap,
-    img_png,
-    img_unknown
-}
-img_type;
-
 typedef struct __attribute__((__packed__))
 {
     char            bm[2];
@@ -44,33 +37,35 @@ typedef struct __attribute__((__packed__))
 }
 BMP_HEADER;
 
+typedef struct 
+{
+    int32_t         width;
+    int32_t         height;
+
+    uint8_t         channels;
+    uint16_t        bitsPerPixel;
+}
+IMG_GEOMETRY;
+
 struct _img_handle {
     /*
     ** Common attributes...
     */
     uint16_t        _id;
-
-    FILE *          fptr_input;
-    FILE *          fptr_output;
-
     img_type        type;
-    uint32_t        rowCounter;
 
-    uint32_t	    width;
-    uint32_t	    height;
-    uint8_t         channels;
-    uint16_t        bitsPerPixel;
+    FILE *          fptr;
+    IMG_GEOMETRY    geometry;
 
     /*
     ** PNG specific attributes...
     */
-    png_structp     png_ptr_read;
-    png_structp     png_ptr_write;
-	png_infop	    info_ptr_read;
-	png_infop	    info_ptr_write;
+    png_structp     png_ptr;
+	png_infop	    info_ptr;
 
     int             colourType;
     int             bitDepth;
+    uint32_t        rowCounter;
 
     /*
     ** BMP specific attributes...
@@ -174,6 +169,21 @@ void _readwrite_error_handler(png_structp png_ptr, png_const_charp msg)
     longjmp(jmpbuf, 1);
 }
 
+void imgrdr_copy_header(HIMG target, HIMG source)
+{
+    if (source->type == img_png) {
+        memcpy(&target->geometry, &source->geometry, sizeof(IMG_GEOMETRY));
+    }
+    else if (source->type == img_win32bitmap) {
+        memcpy(&target->geometry, &source->geometry, sizeof(IMG_GEOMETRY));
+        memcpy(target->pHeader, source->pHeader, sizeof(BMP_HEADER));
+    }
+}
+
+img_type imgrdr_get_type(HIMG himg)
+{
+    return himg->type;
+}
 
 HIMG imgrdr_open(char * pszImageName)
 {
@@ -193,13 +203,13 @@ HIMG imgrdr_open(char * pszImageName)
     }
 }
 
-int imgwrtr_open(HIMG himg, char * pszImageName)
+HIMG imgwrtr_open(char * pszImageName, img_type type)
 {
-    if (himg->type == img_png) {
-        return pngwrtr_open(himg, pszImageName);
+    if (type == img_png) {
+        return pngwrtr_open(pszImageName);
     }
-    else if (himg->type == img_win32bitmap) {
-        return bmpwrtr_open(himg, pszImageName);
+    else if (type == img_win32bitmap) {
+        return bmpwrtr_open(pszImageName);
     }
 
     return 0;
@@ -254,6 +264,18 @@ uint32_t imgrdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength)
     return 0;
 }
 
+int imgwrtr_write_header(HIMG himg)
+{
+    if (himg->type == img_png) {
+        return pngwrtr_write_header(himg);
+    }
+    else if (himg->type == img_win32bitmap) {
+        return bmpwrtr_write_header(himg);
+    }
+
+    return 0;
+}
+
 uint32_t imgwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength)
 {
     if (himg->type == img_png) {
@@ -277,29 +299,29 @@ HIMG pngrdr_open(char * pszImageName)
         return NULL;
     }
 
-    himg->fptr_input = fopen(pszImageName, "rb");
+    himg->fptr = fopen(pszImageName, "rb");
     
-    if (himg->fptr_input == NULL) {
+    if (himg->fptr == NULL) {
         fprintf(stderr, "Could not open input image file %s: %s\n", pszImageName, strerror(errno));
         exit(-1);
     }
 
-	himg->png_ptr_read = png_create_read_struct(
+	himg->png_ptr = png_create_read_struct(
                                     PNG_LIBPNG_VER_STRING,
                                     himg, 
                                     _readwrite_error_handler, 
                                     NULL);
 
-	if (himg->png_ptr_read == NULL) {
+	if (himg->png_ptr == NULL) {
         fprintf(stderr, "Failed to create PNG write struct\n");
         return NULL;
 	}
 
 	/* Allocate/initialize the memory for image information.  REQUIRED. */
-	himg->info_ptr_read = png_create_info_struct(himg->png_ptr_read);
+	himg->info_ptr = png_create_info_struct(himg->png_ptr);
 	
-    if (himg->info_ptr_read == NULL) {
-	  png_destroy_read_struct(&himg->png_ptr_read, NULL, NULL);
+    if (himg->info_ptr == NULL) {
+	  png_destroy_read_struct(&himg->png_ptr, NULL, NULL);
 	  return NULL;
 	}
 
@@ -310,49 +332,49 @@ HIMG pngrdr_open(char * pszImageName)
 
 	if (setjmp(jmpbuf)) {
 	  /* Free all of the memory associated with the png_ptr_read and info_ptr_read */
-	  png_destroy_read_struct(&himg->png_ptr_read, &himg->info_ptr_read, NULL);
+	  png_destroy_read_struct(&himg->png_ptr, &himg->info_ptr, NULL);
 
 	  /* If we get here, we had a problem reading the file */
 	  return NULL;
 	}
 
 	/* Set up the input control if you are using standard C streams */
-	png_init_io(himg->png_ptr_read, himg->fptr_input);
+	png_init_io(himg->png_ptr, himg->fptr);
 	
-	png_read_info(himg->png_ptr_read, himg->info_ptr_read);
+	png_read_info(himg->png_ptr, himg->info_ptr);
 
-	himg->width =           png_get_image_width(himg->png_ptr_read, himg->info_ptr_read);
-	himg->height =          png_get_image_height(himg->png_ptr_read, himg->info_ptr_read);
-    himg->channels =        png_get_channels(himg->png_ptr_read, himg->info_ptr_read);
-    himg->bitDepth =        png_get_bit_depth(himg->png_ptr_read, himg->info_ptr_read);
-	himg->colourType =      png_get_color_type(himg->png_ptr_read, himg->info_ptr_read);
+	himg->geometry.width =      png_get_image_width(himg->png_ptr, himg->info_ptr);
+	himg->geometry.height =     png_get_image_height(himg->png_ptr, himg->info_ptr);
+    himg->geometry.channels =   png_get_channels(himg->png_ptr, himg->info_ptr);
+    himg->bitDepth =            png_get_bit_depth(himg->png_ptr, himg->info_ptr);
+	himg->colourType =          png_get_color_type(himg->png_ptr, himg->info_ptr);
 
-    himg->bitsPerPixel = himg->bitDepth * himg->channels;
+    himg->geometry.bitsPerPixel = himg->bitDepth * himg->geometry.channels;
 
     himg->type = img_png;
 
     if(himg->bitDepth == 16) {
-        png_set_strip_16(himg->png_ptr_read);
+        png_set_strip_16(himg->png_ptr);
     }
 
     if(himg->colourType == PNG_COLOR_TYPE_PALETTE) {
-        png_set_palette_to_rgb(himg->png_ptr_read);
+        png_set_palette_to_rgb(himg->png_ptr);
     }
 
     // PNG_COLOR_TYPE_GRAY_ALPHA is always 8 or 16bit depth.
     if(himg->colourType == PNG_COLOR_TYPE_GRAY && himg->bitDepth < 8) {
-        png_set_expand_gray_1_2_4_to_8(himg->png_ptr_read);
+        png_set_expand_gray_1_2_4_to_8(himg->png_ptr);
     }
 
     if( himg->colourType == PNG_COLOR_TYPE_GRAY ||
         himg->colourType == PNG_COLOR_TYPE_GRAY_ALPHA)
     {
-        png_set_gray_to_rgb(himg->png_ptr_read);
+        png_set_gray_to_rgb(himg->png_ptr);
     }
 
-    png_read_update_info(himg->png_ptr_read, himg->info_ptr_read);
+    png_read_update_info(himg->png_ptr, himg->info_ptr);
 
-    if (himg->bitsPerPixel != 24) {
+    if (himg->geometry.bitsPerPixel != 24) {
         fprintf(stderr, "PNG image must be 24-bit RGB\n");
         exit(-1);
     }
@@ -362,50 +384,46 @@ HIMG pngrdr_open(char * pszImageName)
     return himg;
 }
 
-int pngwrtr_open(HIMG himg, char * pszImageName)
+HIMG pngwrtr_open(char * pszImageName)
 {
-    himg->fptr_output = fopen(pszImageName, "wb");
-    
-    if (himg->fptr_output == NULL) {
-        fprintf(stderr, "Could not open output image file %s: %s\n", pszImageName, strerror(errno));
-        return -1;
+    HIMG            himg;
+
+    himg = _allocateHandle();
+
+    if (himg == NULL) {
+        fprintf(stderr, "Failed to allocate memory for HIMG handle\n");
+        return NULL;
     }
 
-    himg->png_ptr_write = png_create_write_struct(
+    himg->fptr = fopen(pszImageName, "wb");
+    
+    if (himg->fptr == NULL) {
+        fprintf(stderr, "Could not open output image file %s: %s\n", pszImageName, strerror(errno));
+        NULL;
+    }
+
+    himg->png_ptr = png_create_write_struct(
                                 PNG_LIBPNG_VER_STRING, 
                                 himg,
                                 _readwrite_error_handler, 
                                 NULL);
     
-    if (himg->png_ptr_write == NULL) {
+    if (himg->png_ptr == NULL) {
         fprintf(stderr, "Failed to create PNG write struct\n");
-        return -1;
+        return NULL;
     }
 
-    himg->info_ptr_write = png_create_info_struct(himg->png_ptr_write);
+    himg->info_ptr = png_create_info_struct(himg->png_ptr);
     
-    if (himg->info_ptr_write == NULL) {
-        png_destroy_write_struct(&himg->png_ptr_write, NULL);
+    if (himg->info_ptr == NULL) {
+        png_destroy_write_struct(&himg->png_ptr, NULL);
         fprintf(stderr, "Failed to create PNG info struct\n");
-        return -1;
+        return NULL;
     }
 
-    png_init_io(himg->png_ptr_write, himg->fptr_output);
+    png_init_io(himg->png_ptr, himg->fptr);
 
-    png_set_compression_level(himg->png_ptr_write, 5);
-
-    png_set_IHDR(
-            himg->png_ptr_write, 
-            himg->info_ptr_write, 
-            himg->width, 
-            himg->height,
-            8, 
-            PNG_COLOR_TYPE_RGB, 
-            PNG_INTERLACE_NONE,
-            PNG_COMPRESSION_TYPE_DEFAULT, 
-            PNG_FILTER_TYPE_DEFAULT);
-
-    png_write_info(himg->png_ptr_write, himg->info_ptr_write);
+    png_set_compression_level(himg->png_ptr, 5);
 
     himg->rowCounter = 0;
 
@@ -414,38 +432,38 @@ int pngwrtr_open(HIMG himg, char * pszImageName)
 
 void pngrdr_close(HIMG himg)
 {
-	png_read_end(himg->png_ptr_read, NULL);
-	png_destroy_read_struct(&himg->png_ptr_read, &himg->info_ptr_read, NULL);
+	png_read_end(himg->png_ptr, NULL);
+	png_destroy_read_struct(&himg->png_ptr, &himg->info_ptr, NULL);
 
-    fclose(himg->fptr_input);
+    fclose(himg->fptr);
 }
 
 void pngwrtr_close(HIMG himg)
 {
-    png_write_end(himg->png_ptr_write, NULL);
-    png_destroy_write_struct(&himg->png_ptr_write, &himg->info_ptr_write);
+    png_write_end(himg->png_ptr, NULL);
+    png_destroy_write_struct(&himg->png_ptr, &himg->info_ptr);
 
-    fclose(himg->fptr_output);
+    fclose(himg->fptr);
 }
 
 uint32_t pngrdr_get_row_buffer_len(HIMG himg)
 {
-    return (uint32_t)png_get_rowbytes(himg->png_ptr_read, himg->info_ptr_read);
+    return (uint32_t)png_get_rowbytes(himg->png_ptr, himg->info_ptr);
 }
 
 uint32_t pngwrtr_get_row_buffer_len(HIMG himg)
 {
-    return (uint32_t)png_get_rowbytes(himg->png_ptr_write, himg->info_ptr_write);
+    return (uint32_t)png_get_rowbytes(himg->png_ptr, himg->info_ptr);
 }
 
 uint32_t pngrdr_get_data_length(HIMG himg)
 {
-    return (uint32_t)(pngrdr_get_row_buffer_len(himg) * himg->height);
+    return (uint32_t)(pngrdr_get_row_buffer_len(himg) * himg->geometry.height);
 }
 
 boolean pngrw_has_more_rows(HIMG himg)
 {
-    return ((himg->rowCounter < himg->height) ? true : false);
+    return ((himg->rowCounter < himg->geometry.height) ? true : false);
 }
 
 uint32_t pngrdr_read(HIMG himg, uint8_t * data, uint32_t dataLength)
@@ -473,7 +491,7 @@ int pngrdr_read_row(HIMG himg, uint8_t * rowBuffer, uint32_t bufferLength)
         return -1;
     }
 
-    png_read_row(himg->png_ptr_read, rowBuffer, NULL);
+    png_read_row(himg->png_ptr, rowBuffer, NULL);
 
     himg->rowCounter++;
 
@@ -487,9 +505,27 @@ int pngwrtr_write_row(HIMG himg, uint8_t * rowBuffer, uint32_t bufferLength)
         return -1;
     }
 
-    png_write_row(himg->png_ptr_write, rowBuffer);
+    png_write_row(himg->png_ptr, rowBuffer);
 
     himg->rowCounter++;
+
+    return 0;
+}
+
+int pngwrtr_write_header(HIMG himg)
+{
+    png_set_IHDR(
+            himg->png_ptr, 
+            himg->info_ptr, 
+            himg->geometry.width, 
+            himg->geometry.height,
+            8, 
+            PNG_COLOR_TYPE_RGB, 
+            PNG_INTERLACE_NONE,
+            PNG_COMPRESSION_TYPE_DEFAULT, 
+            PNG_FILTER_TYPE_DEFAULT);
+
+    png_write_info(himg->png_ptr, himg->info_ptr);
 
     return 0;
 }
@@ -533,9 +569,9 @@ HIMG bmprdr_open(char * pszImageName)
         return NULL;
     }
 
-    himg->fptr_input = fopen(pszImageName, "rb");
+    himg->fptr = fopen(pszImageName, "rb");
     
-    if (himg->fptr_input == NULL) {
+    if (himg->fptr == NULL) {
         fprintf(stderr, "Could not open input image file %s: %s\n", pszImageName, strerror(errno));
         free(pHeader);
         free(himg);
@@ -545,7 +581,7 @@ HIMG bmprdr_open(char * pszImageName)
     /*
     ** Read the header...
     */
-    bytesRead = fread(pHeader, 1, sizeof(BMP_HEADER), himg->fptr_input);
+    bytesRead = fread(pHeader, 1, sizeof(BMP_HEADER), himg->fptr);
     
     if (bytesRead < sizeof(BMP_HEADER)) {
         fprintf(stderr, "Could not read header from image file %s: %s\n", pszImageName, strerror(errno));
@@ -559,29 +595,29 @@ HIMG bmprdr_open(char * pszImageName)
     */
     if (pHeader->bitsPerPixel != 24) {
         fprintf(stderr, "Only 24-bit uncompressed RGB bitmaps are supported\n");
-        fclose(himg->fptr_input);
+        fclose(himg->fptr);
         free(pHeader);
         free(himg);
         return NULL;
     }
     if (pHeader->compressionMethod != 0) {
         fprintf(stderr, "Only 24-bit uncompressed RGB bitmaps are supported\n");
-        fclose(himg->fptr_input);
+        fclose(himg->fptr);
         free(pHeader);
         free(himg);
         return NULL;
     }
     if (pHeader->numPaletteColours != 0) {
         fprintf(stderr, "Only 24-bit uncompressed RGB bitmaps are supported\n");
-        fclose(himg->fptr_input);
+        fclose(himg->fptr);
         free(pHeader);
         free(himg);
         return NULL;
     }
 
-    himg->bitsPerPixel = pHeader->bitsPerPixel;
-    himg->width = pHeader->width;
-    himg->height = pHeader->height;
+    himg->geometry.bitsPerPixel = pHeader->bitsPerPixel;
+    himg->geometry.width = pHeader->width;
+    himg->geometry.height = pHeader->height;
     himg->type = img_win32bitmap;
 
     himg->pHeader = pHeader;
@@ -589,20 +625,38 @@ HIMG bmprdr_open(char * pszImageName)
     /*
     ** Position the file pointer at the start of the image data...
     */
-    fseek(himg->fptr_input, pHeader->dataOffset, SEEK_SET);
+    fseek(himg->fptr, pHeader->dataOffset, SEEK_SET);
    
     return himg;
 }
 
-int bmpwrtr_open(HIMG himg, char * pszImageName)
+HIMG bmpwrtr_open(char * pszImageName)
 {
-    uint32_t        bytesWritten;
+    HIMG            himg;
+    BMP_HEADER *    pHeader;
 
-    himg->fptr_output = fopen(pszImageName, "wb");
+    pHeader = (BMP_HEADER *)malloc(sizeof(BMP_HEADER));
+
+    if (pHeader == NULL) {
+        fprintf(stderr, "Failed to allocate memory for bitmap header\n");
+        return NULL;
+    }
+
+    himg = _allocateHandle();
+
+    if (himg == NULL) {
+        fprintf(stderr, "Failed to allocate memory for HIMG handle\n");
+        free(pHeader);
+        return NULL;
+    }
+
+    himg->pHeader = pHeader;
+
+    himg->fptr = fopen(pszImageName, "wb");
     
-    if (himg->fptr_output == NULL) {
+    if (himg->fptr == NULL) {
         fprintf(stderr, "Could not open output image file %s: %s\n", pszImageName, strerror(errno));
-        return -1;
+        return NULL;
     }
 
     /*
@@ -611,44 +665,30 @@ int bmpwrtr_open(HIMG himg, char * pszImageName)
     */
     himg->pHeader->dataOffset = sizeof(BMP_HEADER);
 
-    /*
-    ** Write header...
-    */
-    bytesWritten = fwrite(himg->pHeader, 1, sizeof(BMP_HEADER), himg->fptr_output);
-
-    if (bytesWritten < sizeof(BMP_HEADER)) {
-        fprintf(stderr, "Failed to write bitmap header\n");
-        free(himg->pHeader);
-        fclose(himg->fptr_output);
-        return -1;
-    }
-
-    free(himg->pHeader);
-
-    return 0;
+    return himg;
 }
 
 void bmprdr_close(HIMG himg)
 {
-    fclose(himg->fptr_input);
+    fclose(himg->fptr);
 }
 
 void bmpwrtr_close(HIMG himg)
 {
-    fclose(himg->fptr_output);
+    fclose(himg->fptr);
 }
 
 uint32_t bmprdr_get_data_length(HIMG himg)
 {
     uint32_t            dataLength;
 
-    dataLength = (himg->width * 3);
+    dataLength = (himg->geometry.width * 3);
 
     /*
     ** Add padding up to a 4 byte boundry...
     */
     dataLength += (dataLength % 4);
-    dataLength *= himg->height;
+    dataLength *= himg->geometry.height;
 
     return dataLength;
 }
@@ -665,9 +705,30 @@ uint32_t bmprdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength)
         return 0;
     }
 
-    bytesRead = fread(data, 1, dataLength, himg->fptr_input);
+    bytesRead = fread(data, 1, dataLength, himg->fptr);
 
     return bytesRead;
+}
+
+int bmpwrtr_write_header(HIMG himg)
+{
+    uint32_t        bytesWritten;
+
+    /*
+    ** Write header...
+    */
+    bytesWritten = fwrite(himg->pHeader, 1, sizeof(BMP_HEADER), himg->fptr);
+
+    if (bytesWritten < sizeof(BMP_HEADER)) {
+        fprintf(stderr, "Failed to write bitmap header\n");
+        free(himg->pHeader);
+        fclose(himg->fptr);
+        return -1;
+    }
+
+    free(himg->pHeader);
+
+    return 0;
 }
 
 uint32_t bmpwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength)
@@ -682,7 +743,7 @@ uint32_t bmpwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength)
         return 0;
     }
 
-    bytesWritten = fwrite(data, 1, dataLength, himg->fptr_output);
+    bytesWritten = fwrite(data, 1, dataLength, himg->fptr);
 
     return bytesWritten;
 }
