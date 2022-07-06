@@ -427,7 +427,9 @@ HIMG pngwrtr_open(char * pszImageName)
 
     himg->rowCounter = 0;
 
-    return 0;
+    himg->type = img_png;
+
+    return himg;
 }
 
 void pngrdr_close(HIMG himg)
