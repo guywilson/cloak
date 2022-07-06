@@ -408,20 +408,10 @@ boolean wrtr_has_more_blocks(HSECRW hsec)
 
 int wrtr_set_keystream_file(HSECRW hsec, char * pszFilename)
 {
-	uint32_t		keyLength;
-
 	hsec->fptrKey = fopen(pszFilename, "rb");
 
 	if (hsec->fptrKey == NULL) {
 		fprintf(stderr, "Failed to open keystream file %s: %s\n", pszFilename, strerror(errno));
-		return -1;
-	}
-
-	keyLength = getFileSize(hsec->fptrKey);
-
-	if (keyLength < hsec->dataFrameLength) {
-		fprintf(stderr, "Keystream file must be at least %u bytes long\n", hsec->dataFrameLength);
-		fclose(hsec->fptrKey);
 		return -1;
 	}
 
