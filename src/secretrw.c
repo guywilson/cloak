@@ -12,7 +12,6 @@
 #include "secretrw.h"
 
 #define MAX_FILE_SIZE					67108864			// 64Mb
-#define BLOCK_SIZE						64;
 
 struct _secret_rw_handle {
 	encryption_algo		algo;
@@ -56,7 +55,7 @@ HSECRW rdr_open(char * pszFilename, encryption_algo a)
 		return NULL;
 	}
 
-	hsec->blockSize = BLOCK_SIZE;
+	hsec->blockSize = SECRETRW_BLOCK_SIZE;
 	hsec->algo = a;
 	hsec->counter = 0;
 	hsec->blockCounter = 0;
@@ -363,7 +362,7 @@ HSECRW wrtr_open(char * pszFilename, encryption_algo a)
 		return NULL;
 	}
 
-	hsec->blockSize = BLOCK_SIZE;
+	hsec->blockSize = SECRETRW_BLOCK_SIZE;
 	hsec->algo = a;
 	hsec->counter = 0;
 	hsec->blockCounter = 0;

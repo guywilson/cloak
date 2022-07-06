@@ -4,6 +4,8 @@
 #ifndef __INCL_READER
 #define __INCL_READER
 
+#define SECRETRW_BLOCK_SIZE				64
+
 struct _secret_rw_handle;
 typedef struct _secret_rw_handle * HSECRW;
 

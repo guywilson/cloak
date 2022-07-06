@@ -320,7 +320,7 @@ int main(int argc, char ** argv)
 
 	HSECRW			hsec;
 	HIMG			himg;
-	uint8_t *		secretDataBlock;
+	uint8_t 		secretDataBlock[SECRETRW_BLOCK_SIZE];
 	uint8_t *		imageData;
 	uint8_t			secretByte = 0x00;
 	uint32_t		secretDataBlockLen;
@@ -357,20 +357,11 @@ int main(int argc, char ** argv)
 		}
 
 		secretDataBlockLen = rdr_get_block_size(hsec);
-
-    	secretDataBlock = (uint8_t *)malloc(secretDataBlockLen);
-    	
-    	if (secretDataBlock == NULL) {
-    		fprintf(stderr, "Could not allocate memory for input block\n");
-			rdr_close(hsec);
-			exit(-1);
-    	}
     	
 		himg = imgrdr_open(pszSourceFilename);
 
 		if (himg == NULL) {
     		fprintf(stderr, "Could not open source image file %s: %s\n", pszInputFilename, strerror(errno));
-            free(secretDataBlock);
     		exit(-1);
 		}
 
@@ -409,7 +400,6 @@ int main(int argc, char ** argv)
 
 			rdr_close(hsec);
 			imgrdr_close(himg);
-			free(secretDataBlock);
 			exit(-1);
 		}
 
@@ -431,8 +421,6 @@ int main(int argc, char ** argv)
 			exit(-1);
 		}
 
-		imgrdr_close(himg);
-
 		while (rdr_has_more_blocks(hsec)) {
 			secretBytesRemaining = rdr_read_encrypted_block(hsec, secretDataBlock, secretDataBlockLen);
 
@@ -453,12 +441,12 @@ int main(int argc, char ** argv)
 		imgwrtr_write(himg, imageData, imageDataLen);
 		imgwrtr_close(himg);
 
+		imgrdr_close(himg);
+
 		dbg_free(imageData, __FILE__, __LINE__);
 		dbg_free(himg, __FILE__, __LINE__);
 
     	rdr_close(hsec);
-
-		dbg_free(secretDataBlock, __FILE__, __LINE__);
     }
     else {
 		/*
@@ -496,13 +484,6 @@ int main(int argc, char ** argv)
 		}
 
 		secretDataBlockLen = wrtr_get_block_size(hsec);
-		secretDataBlock = (uint8_t *)malloc(secretDataBlockLen);
-
-		if (secretDataBlock == NULL) {
-    		fprintf(stderr, "Could not allocate memory for secret data block\n");
-			dbg_free(imageData, __FILE__, __LINE__);
-			exit(-1);
-		}
 
 		if (algo == aes256) {
 			if (wrtr_set_key_aes(hsec, key, keyLength)) {
@@ -534,7 +515,6 @@ int main(int argc, char ** argv)
 
 				if (rtn < 0) {
 					fprintf(stderr, "Error writing secret block\n");
-					dbg_free(secretDataBlock, __FILE__, __LINE__);
 					dbg_free(imageData, __FILE__, __LINE__);
 					wrtr_close(hsec);
 
@@ -554,7 +534,6 @@ int main(int argc, char ** argv)
 		wrtr_close(hsec);
 
 		dbg_free(imageData, __FILE__, __LINE__);
-		dbg_free(secretDataBlock, __FILE__, __LINE__);
     }
 
 	if (algo == aes256) {
