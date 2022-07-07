@@ -45,20 +45,18 @@ Using Cloak
 -----------
 Type cloak --help to get help on the command line parameters:
 
-'''
-Using cloak:
-    cloak --help (show this help)
-    cloak [options] source-image
-    options: -o [output file]
-             -f [input file to cloak]
-             -k [keystream file for one-time pad encryption]
-             --merge-quality=value where value is:
-                       'high', 'medium', or 'low'
-             --algo=value where value is:
-                    'aes' for AES-256 encryption (prompt for password),
-                    'xor' for one-time pad encryption (-k is mandatory),
-                    'none' for no encryption (hide only)
-'''
+    Using cloak:
+        cloak --help (show this help)
+        cloak [options] source-image
+        options: -o [output file]
+                 -f [input file to cloak]
+                 -k [keystream file for one-time pad encryption]
+                 --merge-quality=value where value is:
+                           'high', 'medium', or 'low'
+                 --algo=value where value is:
+                        'aes' for AES-256 encryption (prompt for password),
+                        'xor' for one-time pad encryption (-k is mandatory),
+                        'none' for no encryption (hide only)
 
 I have included a sample PNG file with this distribution - flowers_out.png which has the LICENSE encoded within it, the password used to encrypt the file is 'password', you should use a strong password, see the tips above.
 
