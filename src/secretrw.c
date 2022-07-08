@@ -303,10 +303,6 @@ void rdr_close(HSECRW hsec)
 		fclose(hsec->fptrSecret);
 	}
 
-	if (hsec->fptrKey != NULL) {
-		fclose(hsec->fptrKey);
-	}
-
 	dbg_free(hsec->data, __FILE__, __LINE__);
 	dbg_free(hsec, __FILE__, __LINE__);
 }
@@ -383,10 +379,6 @@ void wrtr_close(HSECRW hsec)
 {
 	if (hsec->fptrSecret != NULL) {
 		fclose(hsec->fptrSecret);
-	}
-
-	if (hsec->fptrKey != NULL) {
-		fclose(hsec->fptrKey);
 	}
 
 	if (hsec->data != NULL) {
@@ -552,6 +544,8 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 			for (i = 0;i < hsec->encryptionBufferLength;i++) {
 				hsec->data[i] = hsec->data[i] ^ (uint8_t)fgetc(hsec->fptrKey);
 			}
+
+			fclose(hsec->fptrKey);
 		}
 
 		fwrite(hsec->data, 1, hsec->fileLength, hsec->fptrSecret);
