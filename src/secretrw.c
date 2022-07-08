@@ -304,7 +304,7 @@ void rdr_close(HSECRW hsec)
 	}
 
 	dbg_free(hsec->data, __FILE__, __LINE__);
-	dbg_free(hsec, __FILE__, __LINE__);
+//	dbg_free(hsec, __FILE__, __LINE__);
 }
 
 uint32_t rdr_get_block_size(HSECRW hsec)
