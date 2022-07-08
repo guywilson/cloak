@@ -294,9 +294,6 @@ int main(int argc, char ** argv)
     	else if (strcmp(pszExtension, "bmp") == 0) {
     		printf("Processing BMP image file %s\n", pszSourceFilename);
     	}
-//     	else if (strcmp(pszExtension, "wav") == 0) {
-//     		printf("Processing WAV sound file %s\n", pszSourceFilename);
-//     	}
     	else {
     		fprintf(stderr, "Unsupported file extension %s\n", pszExtension);
     		exit(-1);
