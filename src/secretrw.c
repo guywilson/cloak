@@ -381,10 +381,6 @@ void wrtr_close(HSECRW hsec)
 		fclose(hsec->fptrSecret);
 	}
 
-	if (hsec->data != NULL) {
-		dbg_free(hsec->data, __FILE__, __LINE__);
-	}
-
 	dbg_free(hsec, __FILE__, __LINE__);
 }
 
@@ -549,6 +545,8 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 		}
 
 		fwrite(hsec->data, 1, hsec->fileLength, hsec->fptrSecret);
+
+		free(hsec->data);
 
 		return 1;
 	}
