@@ -61,6 +61,7 @@ void printUsage(char * pszProgName)
     printf("    options: -o [output file]\n");
     printf("             -f [input file to cloak]\n");
     printf("             -k [keystream file for one-time pad encryption]\n");
+	printf("             -s report image capacity then exit\n");
     printf("             --merge-quality=value where value is:\n");
 	printf("                       'high', 'medium', or 'low'\n");
     printf("             --algo=value where value is:\n");
@@ -192,6 +193,7 @@ int main(int argc, char ** argv)
 	uint8_t *		key = NULL;
 	uint32_t		keyLength;
 	boolean			isMerge = false;
+	boolean			isReportSize = false;
 	merge_quality	quality = quality_high;
 	encryption_algo	algo = none;
 	
@@ -262,6 +264,9 @@ int main(int argc, char ** argv)
                 else if (strncmp(arg, "-o", 2) == 0) {
                     pszOutputFilename = strdup(argv[i + 1]);
                 }
+                else if (strncmp(arg, "-s", 2) == 0) {
+                    isReportSize = true;
+                }
                 else {
                     printf("Invalid option %s - %s --help for help", arg, argv[0]);
                     return -1;
@@ -326,13 +331,33 @@ int main(int argc, char ** argv)
 	uint32_t		secretBytesRemaining = 0;
 	uint32_t		imageBytesRead;
 	uint32_t		imageDataIndex = 0U;
-    uint32_t        imageCapacity;
+    uint32_t        requiredImageLength;
 	int				numImgBytesRequired = 0;
 	int				secretBufferIndex = 0;
 	int				rtn;
 	img_type		imageType;
 
-    if (isMerge) {
+    if (isReportSize) {
+		himgRead = imgrdr_open(pszSourceFilename);
+
+		if (himgRead == NULL) {
+    		fprintf(stderr, "Could not open source image file %s: %s\n", pszInputFilename, strerror(errno));
+    		exit(-1);
+		}
+
+		imageDataLen = imgrdr_get_data_length(himgRead);
+		
+		numImgBytesRequired = getNumImageBytesRequired(quality);
+        
+        printf(
+            "Image %s has a merge capacity of %u bytes at the specified quality\n", 
+            pszSourceFilename, 
+            (imageDataLen / numImgBytesRequired));
+
+		imgrdr_close(himgRead);
+		imgrdr_destroy_handle(himgRead);
+	}
+	else if (isMerge) {
 		hsec = rdr_open(pszInputFilename, algo);
 
     	if (hsec == NULL) {
@@ -368,19 +393,19 @@ int main(int argc, char ** argv)
 		
 		numImgBytesRequired = getNumImageBytesRequired(quality);
         
-        imageCapacity = 
+        requiredImageLength = 
             rdr_get_data_length(hsec) * 
             getNumImageBytesRequired(quality);
         
         printf(
             "Image %s has a merge capacity of %u bytes at the specified quality\n", 
             pszSourceFilename, 
-            imageCapacity);
+            (imageDataLen / numImgBytesRequired));
         
 		/*
 		** Check the image capacity, will our file fit...?
 		*/
-		if (imageDataLen < imageCapacity) {
+		if (imageDataLen < requiredImageLength) {
 			fprintf(
 				stderr, 
 				"The image %s is not large enough to store the file %s\n", 
@@ -392,7 +417,7 @@ int main(int argc, char ** argv)
 				pszInputFilename, 
 				rdr_get_data_length(hsec), 
 				pszSourceFilename, 
-				(imageDataLen / getNumImageBytesRequired(quality)));
+				(imageDataLen / numImgBytesRequired));
 			fprintf(
 				stderr, 
 				"Consider compressing the file, or using a lower quality setting.\n");
