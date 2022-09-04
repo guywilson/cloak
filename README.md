@@ -51,6 +51,7 @@ Type cloak --help to get help on the command line parameters:
         options: -o [output file]
                  -f [input file to cloak]
                  -k [keystream file for one-time pad encryption]
+                 -s report image capacity then exit
                  --merge-quality=value where value is:
                            'high', 'medium', or 'low'
                  --algo=value where value is:
