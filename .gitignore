@@ -2,7 +2,6 @@ cloak
 /build
 /dep
 /.vscode
-out.png
-flowers.png
-out.md
-out.bmp
+*.png
+*.bmp
+*.out

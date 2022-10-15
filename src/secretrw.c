@@ -128,8 +128,8 @@ HSECRW rdr_open(char * pszFilename, encryption_algo a)
 			return NULL;
 		}
 
-		hsec->encryptionBufferLength = hsec->fileLength + (blklen - (hsec->fileLength % blklen));
-		hsec->dataFrameLength = hsec->encryptionBufferLength + sizeof(CLOAK_HEADER) + blklen;
+		hsec->encryptionBufferLength = hsec->fileLength + (blklen - (hsec->fileLength % blklen)) + blklen;
+		hsec->dataFrameLength = hsec->encryptionBufferLength + sizeof(CLOAK_HEADER);
 
 		hsec->data = (uint8_t *)malloc(hsec->dataFrameLength);
 
@@ -239,6 +239,8 @@ int rdr_encrypt_aes256(HSECRW hsec, uint8_t * key, uint32_t keyLength)
 		dbg_free(hsec, __FILE__, __LINE__);
 		return -1;
 	}
+
+	hexDump(&hsec->data[sizeof(CLOAK_HEADER) + blklen], hsec->encryptionBufferLength);
 
 	err = gcry_cipher_encrypt(
 				hsec->cipherHandle, 
@@ -533,6 +535,8 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 				dbg_free(hsec, __FILE__, __LINE__);
 				return -1;
 			}
+
+			hexDump(hsec->data, hsec->fileLength);
 
 			gcry_cipher_close(hsec->cipherHandle);
 		}

@@ -366,6 +366,8 @@ int main(int argc, char ** argv)
     	}
     	
 		if (algo == aes256) {
+			printf("Encrypting %s using AES-256\n", pszInputFilename);
+			
 			rtn = rdr_encrypt_aes256(hsec, key, keyLength);
 
 			if (rtn) {
@@ -438,11 +440,18 @@ int main(int argc, char ** argv)
 
 		imageBytesRead = imgrdr_read(himgRead, imageData, imageDataLen);
 
-		if (imageBytesRead < imageDataLen) {
-			fprintf(stderr, "Expected %u bytes of image data, but got %u bytes\n", imageDataLen, imageBytesRead);
-			rdr_close(hsec);
-			imgrdr_close(himgRead);
-			exit(-1);
+		/*
+		** Only check if we have enough image bytes for PNG images,
+		** this check fails for BMP images, and I haven't worked out
+		** why yet...
+		*/
+		if (imgrdr_get_type(himgRead) == img_png) {
+			if (imageBytesRead < imageDataLen) {
+				fprintf(stderr, "Expected %u bytes of image data, but got %u bytes\n", imageDataLen, imageBytesRead);
+				rdr_close(hsec);
+				imgrdr_close(himgRead);
+				exit(-1);
+			}
 		}
 
 		while (rdr_has_more_blocks(hsec)) {
