@@ -8,7 +8,7 @@ The idea is simple, a 24-bit colour bitmap or PNG image uses 3 bytes for each pi
 
 Cloak can encrypt your 'secret' data file using either the AES-256 (Rijndael) cipher (in CBC mode) or XOR encryption prior to encoding it in your chosen image. With AES encryption, you will be prompted to enter a password (max 256 chars), the SHA-256 hash of which is used as the key for the pass through AES. With XOR encryption, you must supply a keystream file using the -k option.
 
-With XOR encryption, the advantage of this mechanism is you can employ a one-time-pad scheme, which providing you stick to the rules for a one-time-pad encryption scheme, it is mathematically proven to be unbreakable.
+With XOR encryption, the advantage of this mechanism is you can employ a one-time-pad scheme, which providing you stick to the rules for a one-time-pad encryption scheme, is mathematically proven to be unbreakable.
 
 The rules are:
 
@@ -72,11 +72,6 @@ To 'uncloak' the file from flowers_out.png, you can use the following command:
     cloak --merge-quality=high --algo=aes -o LICENSE.out flowers_out.png
     
 This tells Cloak to use extract mode to extract the file 'LICENSE.out' from the input image 'flowers_out.png', again using 1-bit per byte.
-
-Tips
-----
-* In the case of PNG files, you may notice that the output PNG image from cloak is a different size than the input image, they are identical in content, it is simply that PNG compression will likely result in different size files. This is the key difference between PNG images and 24-bit bitmap images, PNG is compressed whereas bitmap (bmp) is generally not. If you use a bitmap (bmp) file with cloak you will see that the input and output .bmp files will be exactly the same size.
-
 
 Have fun!
 
