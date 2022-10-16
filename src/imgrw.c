@@ -555,6 +555,7 @@ HIMG bmprdr_open(char * pszImageName)
     HIMG            himg;
     BMP_HEADER *    pHeader;
     uint32_t        bytesRead;
+    uint32_t        dataLength;
 
     pHeader = (BMP_HEADER *)malloc(sizeof(BMP_HEADER));
 
@@ -617,6 +618,17 @@ HIMG bmprdr_open(char * pszImageName)
         return NULL;
     }
 
+    dataLength = pHeader->width * 3;
+    dataLength += (dataLength % 4);
+    dataLength *= pHeader->height;
+
+    printf(
+        "BMP data len (from header): %u, calculated: %u\n", 
+        pHeader->rawDataLength, 
+        dataLength);
+
+    printf("BMP data offset: %u\n", pHeader->dataOffset);
+    
     himg->geometry.bitsPerPixel = pHeader->bitsPerPixel;
     himg->geometry.width = pHeader->width;
     himg->geometry.height = pHeader->height;
@@ -686,7 +698,7 @@ uint32_t bmprdr_get_data_length(HIMG himg)
 {
     uint32_t            dataLength;
 
-    dataLength = (himg->geometry.width * 3);
+    dataLength = himg->geometry.width * 3;
 
     /*
     ** Add padding up to a 4 byte boundry...

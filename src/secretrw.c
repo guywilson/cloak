@@ -240,8 +240,6 @@ int rdr_encrypt_aes256(HSECRW hsec, uint8_t * key, uint32_t keyLength)
 		return -1;
 	}
 
-	hexDump(&hsec->data[sizeof(CLOAK_HEADER) + blklen], hsec->encryptionBufferLength);
-
 	err = gcry_cipher_encrypt(
 				hsec->cipherHandle, 
 				&hsec->data[sizeof(CLOAK_HEADER) + blklen], 
@@ -535,8 +533,6 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 				dbg_free(hsec, __FILE__, __LINE__);
 				return -1;
 			}
-
-			hexDump(hsec->data, hsec->fileLength);
 
 			gcry_cipher_close(hsec->cipherHandle);
 		}
