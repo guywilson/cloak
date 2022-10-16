@@ -36,7 +36,7 @@ STDLIBS =
 EXTLIBS = -lgcrypt -lpng
 
 COMPILE.c = $(C) $(CFLAGS) $(DEPFLAGS) -o $@
-LINK.o = $(LINKER) $(STDLIBS) -L/opt/homebrew/Cellar/libgcrypt/1.10.1/lib -L/opt/homebrew/lib -L/Users/guy/Library/lib -o $@
+LINK.o = $(LINKER) $(STDLIBS) -L/opt/homebrew/lib -L/Users/guy/Library/lib -o $@
 
 CSRCFILES = $(wildcard $(SOURCE)/*.c)
 OBJFILES := $(patsubst $(SOURCE)/%.c, $(BUILD)/%.o, $(CSRCFILES))
