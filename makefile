@@ -1,12 +1,12 @@
 ###############################################################################
 #                                                                             #
-# MAKEFILE for Cloak++                                                        #
+# MAKEFILE for Cloak                                                          #
 #                                                                             #
-# (c) Guy Wilson 2019                                                         #
+# (c) Guy Wilson 2022                                                         #
 #                                                                             #
 ###############################################################################
 
-# Version number for WCTL
+# Version number for cloak
 MAJOR_VERSION = 1
 MINOR_VERSION = 2
 
