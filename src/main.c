@@ -73,7 +73,8 @@ void printUsage(char * pszProgName)
     printf("             --algo=value where value is:\n");
 	printf("                    'aes' for AES-256 encryption (prompt for password),\n");
 	printf("                    'xor' for one-time pad encryption (-k is mandatory),\n");
-	printf("                    'none' for no encryption (hide only)\n\n");
+	printf("                    'none' for no encryption (hide only)\n");
+    printf("             --test=n where n is between 1 and 18 to run the numbered test case\n\n");
 }
 
 uint32_t getKey(uint8_t * keyBuffer, uint32_t keyBufferLength, const char * pwd)
