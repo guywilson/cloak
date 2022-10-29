@@ -1,6 +1,7 @@
 cloak
 /build
 /dep
+/test
 /.vscode
 *.png
 *.bmp

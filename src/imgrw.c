@@ -622,12 +622,12 @@ HIMG bmprdr_open(char * pszImageName)
     dataLength += (dataLength % 4);
     dataLength *= pHeader->height;
 
-    printf(
-        "BMP data len (from header): %u, calculated: %u\n", 
-        pHeader->rawDataLength, 
-        dataLength);
+    // printf(
+    //     "BMP data len (from header): %u, calculated: %u\n", 
+    //     pHeader->rawDataLength, 
+    //     dataLength);
 
-    printf("BMP data offset: %u\n", pHeader->dataOffset);
+    // printf("BMP data offset: %u\n", pHeader->dataOffset);
     
     himg->geometry.bitsPerPixel = pHeader->bitsPerPixel;
     himg->geometry.width = pHeader->width;

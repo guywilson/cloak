@@ -1,0 +1,20 @@
+#!/bin/zsh
+
+./cloak --test=1
+./cloak --test=2
+./cloak --test=3
+./cloak --test=4
+./cloak --test=5
+./cloak --test=6
+./cloak --test=7
+./cloak --test=8
+./cloak --test=9
+./cloak --test=10
+./cloak --test=11
+./cloak --test=12
+./cloak --test=13
+./cloak --test=14
+./cloak --test=15
+./cloak --test=16
+./cloak --test=17
+./cloak --test=18
