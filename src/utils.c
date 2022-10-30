@@ -14,7 +14,10 @@
 #include "random_block.h"
 
 #define HMEM_POOL_SIZE                  16
+
+/*
 #define __DEBUG_MEM
+*/
 
 typedef struct
 {

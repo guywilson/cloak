@@ -243,7 +243,7 @@ int rdr_encrypt_aes256(HSECRW hsec, uint8_t * key, uint32_t keyLength)
 	err = gcry_cipher_encrypt(
 				hsec->cipherHandle, 
 				&hsec->data[sizeof(CLOAK_HEADER) + blklen], 
-				hsec->encryptionBufferLength, 
+				(hsec->encryptionBufferLength - blklen), 
 				NULL, 
 				0);
 
