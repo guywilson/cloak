@@ -19,6 +19,7 @@
 #define __DEBUG_MEM
 */
 
+#ifdef __DEBUG_MEM
 typedef struct
 {
     uint16_t        id;
@@ -32,6 +33,7 @@ HMEM;
 
 static HMEM _handlePool[HMEM_POOL_SIZE];
 static int  _currentHandle = 0;
+#endif
 
 uint32_t getFileSize(FILE * fptr)
 {
@@ -166,17 +168,18 @@ void secureFree(void * b, uint32_t len)
 
 void * dbg_malloc(uint16_t id, size_t numBytes, const char * pszFile, const int line)
 {
-    HMEM *      hmem;
     void *      buffer;
 
     buffer = malloc(numBytes);
 
     if (buffer != NULL) {
+#ifdef __DEBUG_MEM
         if (_currentHandle == HMEM_POOL_SIZE) {
             fprintf(stderr, "dbg_malloc: Run out of HMEM handles...\n");
         }
         else {
-#ifdef __DEBUG_MEM
+            HMEM *      hmem;
+
             hmem = &_handlePool[_currentHandle++];
 
             hmem->id = id;
@@ -189,8 +192,8 @@ void * dbg_malloc(uint16_t id, size_t numBytes, const char * pszFile, const int 
             printf("\tNum bytes: %u\n", hmem->size);
             printf("\tBase address: 0x%016"PRIX64"\n", hmem->baseAddress);
             printf("\tCalled from %s:%d\n", hmem->pszSourceFile, hmem->lineNumber);
-#endif
         }
+#endif
     }
 
     return buffer;
