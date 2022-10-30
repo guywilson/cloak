@@ -183,7 +183,7 @@ void * dbg_malloc(uint16_t id, size_t numBytes, const char * pszFile, const int 
 
             printf("Allocated buffer with id: 0x%04X\n", hmem->id);
             printf("\tNum bytes: %u\n", hmem->size);
-            printf("\tBase address: 0x%llU\n", hmem->baseAddress);
+            printf("\tBase address: 0x%016llX\n", hmem->baseAddress);
             printf("\tCalled from %s:%d\n", hmem->pszSourceFile, hmem->lineNumber);
 #endif
         }
@@ -209,7 +209,7 @@ void dbg_free(uint16_t id, void * buffer, const char * pszFile, const int line)
             isFound = 1;
             printf("Freeing allocated buffer with id: 0x%04X\n", hmem->id);
             printf("\tNum bytes: %u\n", hmem->size);
-            printf("\tAllocated address: 0x%llU; Free address: 0x%llU\n", hmem->baseAddress, address);
+            printf("\tAllocated address: 0x%016llX; Free address: 0x%016llX\n", hmem->baseAddress, address);
             printf("\tCalled from %s:%d\n", pszFile, line);
         }
     }
