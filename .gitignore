@@ -6,3 +6,4 @@ cloak
 *.png
 *.bmp
 *.out
+.DS_Store

@@ -12,7 +12,22 @@
 
 #include "random_block.h"
 
-//#define __DEBUG_MEM
+#define HMEM_POOL_SIZE                  16
+#define __DEBUG_MEM
+
+typedef struct
+{
+    uint16_t        id;
+    uint32_t        size;
+    uint64_t        baseAddress;
+
+    int             lineNumber;
+    const char *    pszSourceFile;
+}
+HMEM;
+
+static HMEM _handlePool[HMEM_POOL_SIZE];
+static int  _currentHandle = 0;
 
 uint32_t getFileSize(FILE * fptr)
 {
@@ -145,14 +160,63 @@ void secureFree(void * b, uint32_t len)
     free(b);
 }
 
-void dbg_free(void * buffer, const char * pszFile, const int line)
+void * dbg_malloc(uint16_t id, size_t numBytes, const char * pszFile, const int line)
+{
+    HMEM *      hmem;
+    void *      buffer;
+
+    buffer = malloc(numBytes);
+
+    if (buffer != NULL) {
+        if (_currentHandle == HMEM_POOL_SIZE) {
+            fprintf(stderr, "dbg_malloc: Run out of HMEM handles...\n");
+        }
+        else {
+#ifdef __DEBUG_MEM
+            hmem = &_handlePool[_currentHandle++];
+
+            hmem->id = id;
+            hmem->baseAddress = (uint64_t)buffer;
+            hmem->size = numBytes;
+            hmem->pszSourceFile = pszFile;
+            hmem->lineNumber = line;
+
+            printf("Allocated buffer with id: 0x%04X\n", hmem->id);
+            printf("\tNum bytes: %u\n", hmem->size);
+            printf("\tBase address: 0x%llU\n", hmem->baseAddress);
+            printf("\tCalled from %s:%d\n", hmem->pszSourceFile, hmem->lineNumber);
+#endif
+        }
+    }
+
+    return buffer;
+}
+
+void dbg_free(uint16_t id, void * buffer, const char * pszFile, const int line)
 {
 #ifdef __DEBUG_MEM
     uint64_t        address;
+    int             i;
+    HMEM *          hmem;
+    int             isFound = 0;
 
     address = (uint64_t)buffer;
 
-    printf("Called dbg_free() from %s:%d, free(ing) buffer at address: 0x%llU\n", pszFile, line, address);
+    for (i = 0;i < HMEM_POOL_SIZE;i++) {
+        hmem = &_handlePool[i];
+
+        if (hmem->id == id) {
+            isFound = 1;
+            printf("Freeing allocated buffer with id: 0x%04X\n", hmem->id);
+            printf("\tNum bytes: %u\n", hmem->size);
+            printf("\tAllocated address: 0x%llU; Free address: 0x%llU\n", hmem->baseAddress, address);
+            printf("\tCalled from %s:%d\n", pszFile, line);
+        }
+    }
+
+    if (!isFound) {
+        fprintf(stderr, "Memory handle not found in pool\n");
+    }
 #endif
     free(buffer);
 }

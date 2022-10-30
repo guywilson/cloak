@@ -925,11 +925,11 @@ int main(int argc, char ** argv)
 					else {
 						printf("Unrecognised encryption algorithm '%s'\n", pszAlgorithm);
                     	printUsage(argv[0]);
-						dbg_free(pszAlgorithm, __FILE__, __LINE__);
+						free(pszAlgorithm);
 						return -1;
 					}
 
-					dbg_free(pszAlgorithm, __FILE__, __LINE__);
+					free(pszAlgorithm);
                 }
                 else if (strncmp(arg, "--merge-quality=", 16) == 0) {
                     pszQuality = strdup(&arg[16]);
@@ -949,11 +949,11 @@ int main(int argc, char ** argv)
 					else {
 						printf("Unrecognised merge quality '%s'\n", pszQuality);
                     	printUsage(argv[0]);
-						dbg_free(pszQuality, __FILE__, __LINE__);
+						free(pszQuality);
 						return -1;
 					}
 
-					dbg_free(pszQuality, __FILE__, __LINE__);
+					free(pszQuality);
                 }
                 else if (strncmp(arg, "-f", 2) == 0) {
                     pszInputFilename = strdup(argv[i + 1]);

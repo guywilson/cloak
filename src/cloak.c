@@ -10,6 +10,8 @@
 #include "utils.h"
 
 #define MAX_PASSWORD_LENGTH						255
+#define MEMID_IMAGEDATA							0x0001
+
 
 typedef enum {
 	quality_high = 1,
@@ -273,7 +275,7 @@ int merge(
 
 	imgrdr_destroy_handle(himgWrite);
 
-	dbg_free(imageData, __FILE__, __LINE__);
+	free(imageData);
 
 	rdr_close(hsec);
 
@@ -342,7 +344,7 @@ int extract(
 
 	if (hsec == NULL) {
 		fprintf(stderr, "Failed to open output file %s\n", pszSecretFile);
-		dbg_free(imageData, __FILE__, __LINE__);
+		free(imageData);
 		exit(-1);
 	}
 
@@ -351,7 +353,7 @@ int extract(
 	if (algo == aes256) {
 		if (wrtr_set_key_aes(hsec, key, keyLength)) {
 			fprintf(stderr, "Failed to set AES key\n");
-			dbg_free(imageData, __FILE__, __LINE__);
+			free(imageData);
 			wrtr_close(hsec);
 			exit(-1);
 		}
@@ -378,7 +380,7 @@ int extract(
 
 			if (rtn < 0) {
 				fprintf(stderr, "Error writing secret block\n");
-				dbg_free(imageData, __FILE__, __LINE__);
+				free(imageData);
 				wrtr_close(hsec);
 
 				exit(-1);
@@ -396,7 +398,7 @@ int extract(
 
 	wrtr_close(hsec);
 
-	dbg_free(imageData, __FILE__, __LINE__);
+	free(imageData);
 
 	return 0;
 }
