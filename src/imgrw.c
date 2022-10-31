@@ -114,7 +114,7 @@ void _freeHandle(HIMG himg)
     }
 }
 
-img_type _getImageType(char * pszImageName)
+img_type _getImageType(const char * pszImageName)
 {
     FILE *          fptr_input;
     img_type        type;
@@ -185,7 +185,7 @@ img_type imgrdr_get_type(HIMG himg)
     return himg->type;
 }
 
-HIMG imgrdr_open(char * pszImageName)
+HIMG imgrdr_open(const char * pszImageName)
 {
     img_type            type;
 
@@ -203,7 +203,7 @@ HIMG imgrdr_open(char * pszImageName)
     }
 }
 
-HIMG imgwrtr_open(char * pszImageName, img_type type)
+HIMG imgwrtr_open(const char * pszImageName, img_type type)
 {
     if (type == img_png) {
         return pngwrtr_open(pszImageName);
@@ -288,7 +288,7 @@ uint32_t imgwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength)
     return 0;
 }
 
-HIMG pngrdr_open(char * pszImageName)
+HIMG pngrdr_open(const char * pszImageName)
 {
     HIMG            himg;
 
@@ -384,7 +384,7 @@ HIMG pngrdr_open(char * pszImageName)
     return himg;
 }
 
-HIMG pngwrtr_open(char * pszImageName)
+HIMG pngwrtr_open(const char * pszImageName)
 {
     HIMG            himg;
 
@@ -550,7 +550,7 @@ uint32_t pngwrtr_write(HIMG himg, uint8_t * data, uint32_t dataLength)
     return index;
 }
 
-HIMG bmprdr_open(char * pszImageName)
+HIMG bmprdr_open(const char * pszImageName)
 {
     HIMG            himg;
     BMP_HEADER *    pHeader;
@@ -644,7 +644,7 @@ HIMG bmprdr_open(char * pszImageName)
     return himg;
 }
 
-HIMG bmpwrtr_open(char * pszImageName)
+HIMG bmpwrtr_open(const char * pszImageName)
 {
     HIMG            himg;
     BMP_HEADER *    pHeader;

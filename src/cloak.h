@@ -17,6 +17,7 @@ typedef enum {
 }
 merge_quality;
 
+uint32_t    getKey(uint8_t * keyBuffer, uint32_t keyBufferLength, const char * pwd);
 uint8_t     getBitMask(merge_quality quality);
 int         getNumImageBytesRequired(merge_quality quality);
 void        mergeSecretByte(
@@ -30,18 +31,18 @@ uint8_t     extractSecretByte(
                     merge_quality quality);
 uint32_t    getImageCapacity(char * pszInputImageFile, merge_quality quality);
 int         merge(
-                char * pszInputImageFile, 
-                char * pszSecretFile, 
-                char * pszKeystreamFile,
-                char * pszOutputImageFile,
+                const char * pszInputImageFile, 
+                const char * pszSecretFile, 
+                const char * pszKeystreamFile,
+                const char * pszOutputImageFile,
                 merge_quality quality, 
                 encryption_algo algo, 
                 uint8_t * key, 
                 uint32_t keyLength);
 int         extract(
-                char * pszInputImageFile, 
-                char * pszKeystreamFile,
-                char * pszSecretFile, 
+                const char * pszInputImageFile, 
+                const char * pszKeystreamFile,
+                const char * pszSecretFile, 
                 merge_quality quality, 
                 encryption_algo algo, 
                 uint8_t * key, 

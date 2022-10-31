@@ -58,6 +58,7 @@ Type cloak --help to get help on the command line parameters:
                         'aes' for AES-256 encryption (prompt for password),
                         'xor' for one-time pad encryption (-k is mandatory),
                         'none' for no encryption (hide only)
+                 --test=n where n is between 1 and 18 to run the numbered test case
 
 I have included a sample PNG file with this distribution - flowers_out.png which has the LICENSE encoded within it, the password used to encrypt the file is 'password', you should use a strong password, see the tips above.
 

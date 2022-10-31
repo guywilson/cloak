@@ -41,7 +41,7 @@ typedef struct __attribute__((__packed__))
 CLOAK_HEADER;
 
 
-HSECRW rdr_open(char * pszFilename, encryption_algo a)
+HSECRW rdr_open(const char * pszFilename, encryption_algo a)
 {
 	HSECRW			hsec;
 	CLOAK_HEADER	header;
@@ -259,7 +259,7 @@ int rdr_encrypt_aes256(HSECRW hsec, uint8_t * key, uint32_t keyLength)
 	return 0;
 }
 
-int rdr_encrypt_xor(HSECRW hsec, char * pszKeystreamFilename)
+int rdr_encrypt_xor(HSECRW hsec, const char * pszKeystreamFilename)
 {
 	uint32_t		keyLength;
 	uint32_t		i;
@@ -347,7 +347,7 @@ uint32_t rdr_read_encrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t buffer
 	return bytesRead;
 }
 
-HSECRW wrtr_open(char * pszFilename, encryption_algo a)
+HSECRW wrtr_open(const char * pszFilename, encryption_algo a)
 {
 	HSECRW			hsec;
 
@@ -394,7 +394,7 @@ boolean wrtr_has_more_blocks(HSECRW hsec)
 	return (hsec->counter < hsec->encryptionBufferLength) ? true : false;
 }
 
-int wrtr_set_keystream_file(HSECRW hsec, char * pszFilename)
+int wrtr_set_keystream_file(HSECRW hsec, const char * pszFilename)
 {
 	hsec->fptrKey = fopen(pszFilename, "rb");
 

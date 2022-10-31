@@ -4,28 +4,56 @@
 #include <errno.h>
 #include <ctype.h>
 
+#include <gcrypt.h>
+
 #include "cloak_types.h"
 #include "secretrw.h"
 #include "imgrw.h"
 #include "utils.h"
+#include "cloak.h"
 
 #define MAX_PASSWORD_LENGTH						255
 #define MEMID_IMAGEDATA							0x0001
 
 
-typedef enum {
-	quality_high = 1,
-	quality_medium = 2,
-	quality_low = 4,
+uint32_t getKey(uint8_t * keyBuffer, uint32_t keyBufferLength, const char * pwd)
+{
+	char		    szPassword[MAX_PASSWORD_LENGTH + 1];
+	int				i = 0;
+	int				ch = 0;
+	uint32_t		keySize;
 
-	/*
-	** Testing only!
-	*/
-	quality_none = 8
+    if (pwd == NULL) {
+        printf("Enter password: ");
+
+        while (i < MAX_PASSWORD_LENGTH) {
+            ch = __getch();
+
+            if (ch != '\n' && ch != '\r') {
+                putchar('*');
+                fflush(stdout);
+                szPassword[i++] = (char)ch;
+            }
+            else {
+                break;
+            }
+        }
+
+        putchar('\n');
+        fflush(stdout);
+        szPassword[i] = 0;
+    }
+    else {
+        strncpy(szPassword, pwd, MAX_PASSWORD_LENGTH);
+    }
+
+	gcry_md_hash_buffer(GCRY_MD_SHA3_256, keyBuffer, szPassword, i);
+    wipeBuffer(szPassword, MAX_PASSWORD_LENGTH + 1);
+
+	keySize = gcry_md_get_algo_dlen(GCRY_MD_SHA3_256);
+
+	return keySize;
 }
-merge_quality;
-
-
 
 uint8_t getBitMask(merge_quality quality)
 {
@@ -129,10 +157,10 @@ uint32_t getImageCapacity(char * pszInputImageFile, merge_quality quality)
 }
 
 int merge(
-		char * pszInputImageFile, 
-		char * pszSecretFile, 
-		char * pszKeystreamFile,
-		char * pszOutputImageFile,
+		const char * pszInputImageFile, 
+		const char * pszSecretFile, 
+		const char * pszKeystreamFile,
+		const char * pszOutputImageFile,
 		merge_quality quality, 
 		encryption_algo algo, 
 		uint8_t * key, 
@@ -283,9 +311,9 @@ int merge(
 }
 
 int extract(
-		char * pszInputImageFile, 
-		char * pszKeystreamFile,
-		char * pszSecretFile, 
+		const char * pszInputImageFile, 
+		const char * pszKeystreamFile,
+		const char * pszSecretFile, 
 		merge_quality quality, 
 		encryption_algo algo, 
 		uint8_t * key, 
