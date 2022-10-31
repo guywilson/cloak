@@ -69,7 +69,7 @@ int main(int argc, char ** argv)
 	char *			pszQuality;
 	const uint32_t	keyBufferLen = 64U;
 	uint8_t *		key = NULL;
-	uint32_t		keyLength;
+	uint32_t		keyLength = 0;
 	boolean			isMerge = false;
 	boolean			isReportSize = false;
 	merge_quality	quality = quality_high;
