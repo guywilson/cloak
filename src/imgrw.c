@@ -465,7 +465,7 @@ uint32_t pngrdr_get_data_length(HIMG himg)
 
 boolean pngrw_has_more_rows(HIMG himg)
 {
-    return ((himg->rowCounter < himg->geometry.height) ? true : false);
+    return ((himg->rowCounter < himg->geometry.height) ? True : False);
 }
 
 uint32_t pngrdr_read(HIMG himg, uint8_t * data, uint32_t dataLength)

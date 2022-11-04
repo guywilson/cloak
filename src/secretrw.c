@@ -324,7 +324,7 @@ uint32_t rdr_get_file_length(HSECRW hsec)
 
 boolean rdr_has_more_blocks(HSECRW hsec)
 {
-	return ((hsec->counter < hsec->dataFrameLength) ? true : false);
+	return ((hsec->counter < hsec->dataFrameLength) ? True : False);
 }
 
 uint32_t rdr_read_encrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLength)
@@ -391,7 +391,7 @@ uint32_t wrtr_get_block_size(HSECRW hsec)
 
 boolean wrtr_has_more_blocks(HSECRW hsec)
 {
-	return (hsec->counter < hsec->encryptionBufferLength) ? true : false;
+	return (hsec->counter < hsec->encryptionBufferLength) ? True : False;
 }
 
 int wrtr_set_keystream_file(HSECRW hsec, const char * pszFilename)

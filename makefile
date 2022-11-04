@@ -7,8 +7,8 @@
 ###############################################################################
 
 # Version number for cloak
-MAJOR_VERSION = 1
-MINOR_VERSION = 2
+MAJOR_VERSION = 2
+MINOR_VERSION = 0
 
 # Directories
 SOURCE = src
@@ -28,12 +28,12 @@ PRECOMPILE = @ mkdir -p $(BUILD) $(DEP)
 # postcompile step
 POSTCOMPILE = @ mv -f $(DEP)/$*.Td $(DEP)/$*.d
 
-CFLAGS = -c -O2 -Wall -pedantic -I/opt/homebrew/include -I/Users/guy/Library/include
+CFLAGS = -c -O2 -Wall -pedantic -I/opt/homebrew/include -I/Users/guy/Library/include `pkg-config --cflags gtk4`
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEP)/$*.Td
 
 # Libraries
 STDLIBS = 
-EXTLIBS = -lgcrypt -lpng
+EXTLIBS = -lgcrypt -lpng `pkg-config --libs gtk4`
 
 COMPILE.c = $(C) $(CFLAGS) $(DEPFLAGS) -o $@
 LINK.o = $(LINKER) $(STDLIBS) -L/opt/homebrew/lib -L/Users/guy/Library/lib -o $@

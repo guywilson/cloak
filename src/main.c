@@ -7,6 +7,7 @@
 #include "cloak.h"
 #include "cloak_types.h"
 #include "utils.h"
+#include "gui.h"
 #include "test.h"
 #include "version.h"
 
@@ -70,12 +71,13 @@ int main(int argc, char ** argv)
 	const uint32_t	keyBufferLen = 64U;
 	uint8_t *		key = NULL;
 	uint32_t		keyLength = 0;
-	boolean			isMerge = false;
-	boolean			isReportSize = false;
+	boolean			isMerge = False;
+	boolean			isReportSize = False;
+	boolean			isGUI = False;
 	merge_quality	quality = quality_high;
 	encryption_algo	algo = none;
 	
-    if (argc > 1) {
+    if (argc > 0) {
         for (i = 1;i < argc;i++) {
             arg = argv[i];
 
@@ -92,6 +94,9 @@ int main(int argc, char ** argv)
                     testNum = atoi(&arg[7]);
 
                     return test(testNum);
+                }
+                else if (strncmp(arg, "--gui", 5) == 0) {
+					isGUI = True;
                 }
                 else if (strncmp(arg, "--algo=", 7) == 0) {
                     pszAlgorithm = strdup(&arg[7]);
@@ -148,7 +153,7 @@ int main(int argc, char ** argv)
                     pszOutputFilename = strdup(argv[i + 1]);
                 }
                 else if (strncmp(arg, "-s", 2) == 0) {
-                    isReportSize = true;
+                    isReportSize = True;
                 }
                 else {
                     printf("Invalid option %s - %s --help for help", arg, argv[0]);
@@ -157,10 +162,11 @@ int main(int argc, char ** argv)
             }
         }
     }
-    else {
-    	printUsage(argv[0]);
-        return -1;
-    }
+
+	if (isGUI) {
+		printf("Starting GUI...\n");
+		return initiateGUI(1, argv);
+	}
 
 	if (algo == xor && pszKeystreamFilename == NULL) {
 		printf("For encryption algorithm 'xor', you must specify a key stream file.\n");
@@ -170,7 +176,7 @@ int main(int argc, char ** argv)
 	pszSourceFilename = strdup(argv[argc - 1]);
 	
 	if (pszInputFilename != NULL) {
-		isMerge = true;
+		isMerge = True;
 	}
 	
     pszExtension = getFileExtension(pszSourceFilename);
