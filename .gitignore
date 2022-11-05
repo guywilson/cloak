@@ -2,6 +2,7 @@ cloak
 /build
 /dep
 /test
+/examples
 /.vscode
 *.png
 *.bmp

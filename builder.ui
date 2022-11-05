@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <object id="mainWindow" class="GtkWindow">
+    <property name="title">Cloak</property>
+    <child>
+      <object id="mainGrid" class="GtkGrid">
+        <child>
+          <object id="imageFrame" class="GtkFrame">
+            <layout>
+              <property name="column">0</property>
+              <property name="row">0</property>
+              <property name="row-span">2</property>
+            </layout>
+            <child>
+              <object id="imageBox" class="GtkBox">
+                <property name="orientation">vertical</property>
+                <child>
+                  <object id="image" class="GtkImage">
+                  </object>
+                </child>
+                <child>
+                  <object id="capacityLabel" class="GtkLabel">
+                    <property name="label">Capacity:</property>
+                    <property name="halign">GTK_ALIGN_START</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object id="actionFrame" class="GtkFrame">
+            <layout>
+              <property name="column">0</property>
+              <property name="row">2</property>
+              <property name="column-span">2</property>
+            </layout>
+            <child>
+              <object id="actionBox" class="GtkBox">
+                <property name="orientation">horizontal</property>
+                <child>
+                  <object id="mergeButton" class="GtkButton">
+                    <property name="label">_Merge...</property>
+                    <property name="use-underline">1</property>
+                    <property name="tooltip-text">Merge a secret file with the image</property>
+                  </object>
+                </child>
+                <child>
+                  <object id="extractButton" class="GtkButton">
+                    <property name="label">_Extract...</property>
+                    <property name="use-underline">1</property>
+                    <property name="tooltip-text">Extract a secret file from the image</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object id="encryptionFrame" class="GtkFrame">
+            <layout>
+              <property name="column">1</property>
+              <property name="row">0</property>
+            </layout>
+          </object>
+          <object id="qualityFrame" class="GtkFrame">
+            <layout>
+              <property name="column">1</property>
+              <property name="row">2</property>
+            </layout>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

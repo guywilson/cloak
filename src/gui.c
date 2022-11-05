@@ -9,6 +9,71 @@
 #include "cloak_types.h"
 #include "utils.h"
 
+typedef enum {
+    actionMerge,
+    actionExtract
+}
+cloak_action;
+
+typedef struct {
+    cloak_action        action;
+
+    char *              pszSourceImageFile;
+    char *              pszOutputFile;
+    char *              pszKeystreamFile;
+
+    uint8_t *           key;
+    uint32_t            keyLength;
+
+    merge_quality       quality;
+    encryption_algo     algo;
+}
+CLOAK_INFO;
+
+static CLOAK_INFO       _cloakInfo;
+
+
+static void handleMergeOpen(GtkNativeDialog * dialog, int response)
+{
+    GFile *         file;
+    char *          pszSecretFilename;
+
+    if (response == GTK_RESPONSE_ACCEPT) {
+        GtkFileChooser * chooser = GTK_FILE_CHOOSER(dialog);
+
+        file = gtk_file_chooser_get_file(chooser);
+        pszSecretFilename = g_file_get_path(file);
+        g_print("Got file %s\n", pszSecretFilename);
+
+        
+//        save_to_file(file);
+    }
+
+    g_object_unref(dialog);
+}
+
+static void handleMergeButtonClick(GtkWidget * widget, gpointer data)
+{
+    GtkFileChooserNative *         openDialog;
+
+    g_print("Hello World - Merge clicked\n");
+
+    openDialog = gtk_file_chooser_native_new(
+                        "Open a secret file", 
+                        (GtkWindow *)data, 
+                        GTK_FILE_CHOOSER_ACTION_OPEN, 
+                        "_Open",
+                        "_Cancel");
+
+    g_signal_connect(openDialog, "response", G_CALLBACK(handleMergeOpen), NULL);
+    gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
+}
+
+static void handleExtractButtonClick(GtkWidget * widget, gpointer data)
+{
+    g_print ("Hello World - Extract clicked\n");
+}
+
 static void activate(GtkApplication * app, gpointer user_data)
 {
     GtkWidget *         mainWindow;
@@ -44,7 +109,7 @@ static void activate(GtkApplication * app, gpointer user_data)
     imageFrame = gtk_frame_new(NULL);
     imageBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
 
-    pixbuf = gdk_pixbuf_new_from_file_at_size("/Users/guy/development/cloak/test/album.bmp", 500, 500, NULL);
+    pixbuf = gdk_pixbuf_new_from_file_at_size("./initialImage.png", 400, 400, NULL);
     image = gtk_image_new_from_pixbuf(pixbuf);
 
     gtk_widget_set_size_request(image, 400, 400);
@@ -74,6 +139,9 @@ static void activate(GtkApplication * app, gpointer user_data)
 
     mergeButton = gtk_button_new_with_mnemonic("_Merge...");
     extractButton = gtk_button_new_with_mnemonic("_Extract...");
+
+    g_signal_connect(mergeButton, "clicked", G_CALLBACK(handleMergeButtonClick), mainWindow);
+    g_signal_connect(extractButton, "clicked", G_CALLBACK(handleExtractButtonClick), mainWindow);
 
     gtk_button_set_use_underline(GTK_BUTTON(mergeButton), TRUE);
     gtk_button_set_use_underline(GTK_BUTTON(extractButton), TRUE);
