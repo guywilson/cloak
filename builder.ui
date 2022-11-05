@@ -62,12 +62,89 @@
               <property name="column">1</property>
               <property name="row">0</property>
             </layout>
+            <child>
+              <object id="encryptionGrid" class="GtkGrid">
+                <child>
+                  <object id="aesEncryptionRadio" class="GtkCheckButton">
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                    <property name="label">AES</property>
+                  </object>
+                </child>
+                <child>
+                  <object id="aesPasswordField" class="GtkPasswordEntry">
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object id="xorEncryptionRadio" class="GtkCheckButton">
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">1</property>
+                    </layout>
+                    <property name="label">XOR</property>
+                  </object>
+                </child>
+                <child>
+                  <object id="xorKeystreamField" class="GtkEntry">
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object id="xorBrowseButton" class="GtkButton">
+                    <layout>
+                      <property name="column">2</property>
+                      <property name="row">1</property>
+                    </layout>
+                  </object>
+                </child>
+                <child>
+                  <object id="noneEncryptionRadio" class="GtkCheckButton">
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">2</property>
+                    </layout>
+                    <property name="label">None</property>
+                  </object>
+                </child>
+              </object>
+            </child>
           </object>
+        </child>
+        <child>
           <object id="qualityFrame" class="GtkFrame">
             <layout>
               <property name="column">1</property>
               <property name="row">2</property>
             </layout>
+            <child>
+              <object id="qualityBox" class="GtkBox">
+                <property name="orientation">vertical</property>
+                <child>
+                  <object id="highQualityRadio" class="GtkCheckButton">
+                    <property name="label">High (1-bit)</property>
+                  </object>
+                </child>
+                <child>
+                  <object id="mediumQualityRadio" class="GtkCheckButton">
+                    <property name="label">Medium (2-bit)</property>
+                  </object>
+                </child>
+                <child>
+                  <object id="lowQualityRadio" class="GtkCheckButton">
+                    <property name="label">Low (4-bit)</property>
+                  </object>
+                </child>
+              </object>
+            </child>
           </object>
         </child>
       </object>
