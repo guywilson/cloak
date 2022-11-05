@@ -62,14 +62,14 @@
                 <child>
                   <object id="mergeButton" class="GtkButton">
                     <property name="label">_Merge...</property>
-                    <property name="use-underline">1</property>
+                    <property name="use-underline">TRUE</property>
                     <property name="tooltip-text">Merge a secret file with the image</property>
                   </object>
                 </child>
                 <child>
                   <object id="extractButton" class="GtkButton">
                     <property name="label">_Extract...</property>
-                    <property name="use-underline">1</property>
+                    <property name="use-underline">TRUE</property>
                     <property name="tooltip-text">Extract a secret file from the image</property>
                   </object>
                 </child>
@@ -113,6 +113,8 @@
                       <property name="row">0</property>
                       <property name="column-span">2</property>
                     </layout>
+                    <property name="width-request">100</property>
+                    <property name="height-request">16</property>
                   </object>
                 </child>
                 <child>
@@ -139,6 +141,9 @@
                       <property name="column">2</property>
                       <property name="row">1</property>
                     </layout>
+                    <property name="label">_Browse...</property>
+                    <property name="use-underline">TRUE</property>
+                    <property name="tooltip-text">Browse for a keystream file</property>
                   </object>
                 </child>
                 <child>
@@ -161,7 +166,7 @@
               <property name="column">1</property>
               <property name="row">1</property>
             </layout>
-            <property name="margin-top">10</property>
+            <property name="margin-top">0</property>
             <property name="margin-bottom">10</property>
             <property name="margin-start">0</property>
             <property name="margin-end">10</property>
