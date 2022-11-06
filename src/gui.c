@@ -79,6 +79,26 @@ static void handleBrowseButtonClick(GtkWidget * widget, gpointer data)
     g_print("Hello World - Browse clicked\n");
 }
 
+static void handleMenuOpen(GSimpleAction * action, GVariant * parameter, gpointer win)
+{
+}
+
+static void handleMenuSaveAs(GSimpleAction * action, GVariant * parameter, gpointer win)
+{
+}
+
+static void handleMenuQuit(GSimpleAction * action, GVariant * parameter, gpointer win)
+{
+}
+
+static void handleMenuMerge(GSimpleAction * action, GVariant * parameter, gpointer win)
+{
+}
+
+static void handleMenuExtract(GSimpleAction * action, GVariant * parameter, gpointer win)
+{
+}
+
 static void activate(GtkApplication * app, gpointer user_data)
 {
     GtkBuilder *        builder;
@@ -106,12 +126,34 @@ static void activate(GtkApplication * app, gpointer user_data)
     GtkWidget *         mediumQualityRadio;
     GtkWidget *         lowQualityRadio;
     GdkPixbuf *         pixbuf;
+    GMenuModel *        menuBar;
 
     builder = gtk_builder_new();
     gtk_builder_add_from_file(builder, "builder.ui", NULL);
 
     mainWindow = gtk_builder_get_object(builder, "mainWindow");
     gtk_window_set_application(GTK_WINDOW(mainWindow), app);
+
+    menuBar = G_MENU_MODEL(gtk_builder_get_object(builder, "menuBar"));
+
+    const GActionEntry menuEntries[] = {
+        { "open", handleMenuOpen, NULL, NULL, NULL },
+        { "saveas", handleMenuSaveAs, NULL, NULL, NULL },
+        { "quit", handleMenuQuit, NULL, NULL, NULL },
+        { "merge", handleMenuMerge, NULL, NULL, NULL },
+        { "extract", handleMenuExtract, NULL, NULL, NULL }
+    };
+
+    g_action_map_add_action_entries(
+                G_ACTION_MAP(mainWindow), 
+                menuEntries, 
+                G_N_ELEMENTS(menuEntries), 
+                mainWindow);
+
+    gtk_application_set_menubar(app, menuBar);
+    gtk_application_window_set_show_menubar(GTK_APPLICATION_WINDOW(mainWindow), TRUE);
+
+    //g_action_map_add_action_entries();
 
     mergeButton = gtk_builder_get_object(builder, "mergeButton");
     g_signal_connect(mergeButton, "clicked", G_CALLBACK(handleMergeButtonClick), NULL);

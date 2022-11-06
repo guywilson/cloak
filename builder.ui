@@ -1,5 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
+  <menu id="menuBar">
+     <submenu>
+       <attribute name="label">File</attribute>
+       <section>
+         <item>
+           <attribute name="label">Open</attribute>
+           <attribute name="action">win.open</attribute>
+         </item>
+       </section>
+       <section>
+         <item>
+           <attribute name="label">Save As…</attribute>
+           <attribute name="action">win.saveas</attribute>
+         </item>
+       </section>
+       <section>
+         <item>
+           <attribute name="label">Quit</attribute>
+           <attribute name="action">app.quit</attribute>
+         </item>
+       </section>
+     </submenu>
+     <submenu>
+       <attribute name="label">Action</attribute>
+       <section>
+         <item>
+           <attribute name="label">Merge...</attribute>
+           <attribute name="action">win.merge</attribute>
+         </item>
+       </section>
+       <section>
+         <item>
+           <attribute name="label">Extract...</attribute>
+           <attribute name="action">win.extract</attribute>
+         </item>
+       </section>
+     </submenu>
+  </menu>
   <object id="mainWindow" class="GtkWindow">
     <property name="title">Cloak</property>
     <child>
@@ -79,6 +117,7 @@
         </child>
         <child>
           <object id="encryptionFrame" class="GtkFrame">
+            <property name="label">Encryption</property>
             <layout>
               <property name="column">1</property>
               <property name="row">0</property>
@@ -162,6 +201,7 @@
         </child>
         <child>
           <object id="qualityFrame" class="GtkFrame">
+            <property name="label">Quality</property>
             <layout>
               <property name="column">1</property>
               <property name="row">1</property>
