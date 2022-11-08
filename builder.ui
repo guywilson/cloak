@@ -41,7 +41,7 @@
             <layout>
               <property name="column">0</property>
               <property name="row">1</property>
-              <property name="row-span">2</property>
+              <property name="row-span">3</property>
             </layout>
             <property name="margin-top">10</property>
             <property name="margin-bottom">10</property>
@@ -71,10 +71,10 @@
           </object>
         </child>
         <child>
-          <object id="actionFrame" class="GtkFrame">
+          <object id="goFrame" class="GtkFrame">
             <layout>
               <property name="column">0</property>
-              <property name="row">3</property>
+              <property name="row">4</property>
               <property name="column-span">2</property>
             </layout>
             <property name="margin-top">0</property>
@@ -82,27 +82,19 @@
             <property name="margin-start">10</property>
             <property name="margin-end">10</property>
             <child>
-              <object id="actionBox" class="GtkBox">
+              <object id="goBox" class="GtkBox">
                 <property name="orientation">horizontal</property>
                 <property name="homogeneous">FALSE</property>
                 <property name="spacing">10</property>
-                <property name="halign">GTK_ALIGN_CENTER</property>
+                <property name="halign">GTK_ALIGN_END</property>
                 <property name="margin-top">10</property>
                 <property name="margin-bottom">10</property>
                 <property name="margin-start">10</property>
                 <property name="margin-end">10</property>
                 <child>
-                  <object id="mergeButton" class="GtkButton">
-                    <property name="label">_Merge...</property>
+                  <object id="goButton" class="GtkButton">
+                    <property name="label">Go</property>
                     <property name="use-underline">TRUE</property>
-                    <property name="tooltip-text">Merge a secret file with the image</property>
-                  </object>
-                </child>
-                <child>
-                  <object id="extractButton" class="GtkButton">
-                    <property name="label">_Extract...</property>
-                    <property name="use-underline">TRUE</property>
-                    <property name="tooltip-text">Extract a secret file from the image</property>
                   </object>
                 </child>
               </object>
@@ -148,6 +140,7 @@
                     </layout>
                     <property name="width-request">100</property>
                     <property name="height-request">16</property>
+                    <property name="sensitive">TRUE</property>
                   </object>
                 </child>
                 <child>
@@ -166,6 +159,7 @@
                       <property name="column">1</property>
                       <property name="row">1</property>
                     </layout>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
                 <child>
@@ -177,6 +171,7 @@
                     <property name="label">_Browse...</property>
                     <property name="use-underline">TRUE</property>
                     <property name="tooltip-text">Browse for a keystream file</property>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
                 <child>
@@ -229,6 +224,42 @@
                   <object id="lowQualityRadio" class="GtkCheckButton">
                     <property name="label">Low (4-bit)</property>
                     <property name="group">highQualityRadio</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object id="actionFrame" class="GtkFrame">
+            <property name="label">Action</property>
+            <layout>
+              <property name="column">1</property>
+              <property name="row">3</property>
+            </layout>
+            <property name="margin-top">0</property>
+            <property name="margin-bottom">10</property>
+            <property name="margin-start">0</property>
+            <property name="margin-end">10</property>
+            <child>
+              <object id="actionBox" class="GtkBox">
+                <property name="orientation">vertical</property>
+                <property name="homogeneous">FALSE</property>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object id="mergeActionRadio" class="GtkCheckButton">
+                    <property name="label">Merge</property>
+                    <property name="active">TRUE</property>
+                  </object>
+                </child>
+                <child>
+                  <object id="extractActionRadio" class="GtkCheckButton">
+                    <property name="label">Extract</property>
+                    <property name="group">mergeActionRadio</property>
                   </object>
                 </child>
               </object>

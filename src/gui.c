@@ -86,9 +86,22 @@ static void handleMergeOpen(GtkNativeDialog * dialog, int response)
         file = gtk_file_chooser_get_file(chooser);
         pszSecretFilename = g_file_get_path(file);
         g_print("Got file %s\n", pszSecretFilename);
+    }
 
-        
-//        save_to_file(file);
+    g_object_unref(dialog);
+}
+
+static void handleExtractSave(GtkNativeDialog * dialog, int response)
+{
+    GFile *         file;
+    char *          pszSecretFilename;
+
+    if (response == GTK_RESPONSE_ACCEPT) {
+        GtkFileChooser * chooser = GTK_FILE_CHOOSER(dialog);
+
+        file = gtk_file_chooser_get_file(chooser);
+        pszSecretFilename = g_file_get_path(file);
+        g_print("Got file %s\n", pszSecretFilename);
     }
 
     g_object_unref(dialog);
@@ -96,7 +109,6 @@ static void handleMergeOpen(GtkNativeDialog * dialog, int response)
 
 static void handleHighQualityToggle(GtkWidget * radio, gpointer data)
 {
-    g_print("High-quality toggle event\n");
     if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
         _cloakInfo.quality = quality_high;
         refreshCapacity();
@@ -105,7 +117,6 @@ static void handleHighQualityToggle(GtkWidget * radio, gpointer data)
 
 static void handleMediumQualityToggle(GtkWidget * radio, gpointer data)
 {
-    g_print("Medium-quality toggle event\n");
     if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
         _cloakInfo.quality = quality_medium;
         refreshCapacity();
@@ -114,33 +125,96 @@ static void handleMediumQualityToggle(GtkWidget * radio, gpointer data)
 
 static void handleLowQualityToggle(GtkWidget * radio, gpointer data)
 {
-    g_print("Low-quality toggle event\n");
     if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
         _cloakInfo.quality = quality_low;
         refreshCapacity();
     }
 }
 
-static void handleMergeButtonClick(GtkWidget * widget, gpointer data)
+static void handleAesEncryptionToggle(GtkWidget * radio, gpointer data)
 {
-    GtkFileChooserNative *         openDialog;
+    GtkWidget *     aesPasswordField;
+    GtkWidget *     xorKeystreamFileField;
+    GtkWidget *     xorBrowseButton;
 
-    g_print("Hello World - Merge clicked\n");
+    if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
+        aesPasswordField = gtk_builder_get_object(_cloakInfo.builder, "aesPasswordField");
+        xorKeystreamFileField = gtk_builder_get_object(_cloakInfo.builder, "xorKeystreamField");
+        xorBrowseButton = gtk_builder_get_object(_cloakInfo.builder, "xorBrowseButton");
 
-    openDialog = gtk_file_chooser_native_new(
-                        "Open a secret file", 
-                        (GtkWindow *)data, 
-                        GTK_FILE_CHOOSER_ACTION_OPEN, 
-                        "_Open",
-                        "_Cancel");
-
-    g_signal_connect(openDialog, "response", G_CALLBACK(handleMergeOpen), NULL);
-    gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
+        gtk_widget_set_sensitive(aesPasswordField, TRUE);
+        gtk_widget_set_sensitive(xorKeystreamFileField, FALSE);
+        gtk_widget_set_sensitive(xorBrowseButton, FALSE);
+    }
 }
 
-static void handleExtractButtonClick(GtkWidget * widget, gpointer data)
+static void handleXorEncryptionToggle(GtkWidget * radio, gpointer data)
 {
-    g_print("Hello World - Extract clicked\n");
+    GtkWidget *     aesPasswordField;
+    GtkWidget *     xorKeystreamFileField;
+    GtkWidget *     xorBrowseButton;
+
+    if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
+        aesPasswordField = gtk_builder_get_object(_cloakInfo.builder, "aesPasswordField");
+        xorKeystreamFileField = gtk_builder_get_object(_cloakInfo.builder, "xorKeystreamField");
+        xorBrowseButton = gtk_builder_get_object(_cloakInfo.builder, "xorBrowseButton");
+
+        gtk_widget_set_sensitive(aesPasswordField, FALSE);
+        gtk_widget_set_sensitive(xorKeystreamFileField, TRUE);
+        gtk_widget_set_sensitive(xorBrowseButton, TRUE);
+    }
+}
+
+static void handleNoneEncryptionToggle(GtkWidget * radio, gpointer data)
+{
+    GtkWidget *     aesPasswordField;
+    GtkWidget *     xorKeystreamFileField;
+    GtkWidget *     xorBrowseButton;
+
+    if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
+        aesPasswordField = gtk_builder_get_object(_cloakInfo.builder, "aesPasswordField");
+        xorKeystreamFileField = gtk_builder_get_object(_cloakInfo.builder, "xorKeystreamField");
+        xorBrowseButton = gtk_builder_get_object(_cloakInfo.builder, "xorBrowseButton");
+
+        gtk_widget_set_sensitive(aesPasswordField, FALSE);
+        gtk_widget_set_sensitive(xorKeystreamFileField, FALSE);
+        gtk_widget_set_sensitive(xorBrowseButton, FALSE);
+    }
+}
+
+static void handleGoButtonClick(GtkWidget * widget, gpointer data)
+{
+    GtkFileChooserNative *          openDialog;
+    GtkWidget *                     mergeActionRadio;
+    GtkWidget *                     extractActionRadio;
+
+    g_print("Hello World - Go clicked\n");
+
+    mergeActionRadio = gtk_builder_get_object(_cloakInfo.builder, "mergeActionRadio");
+    extractActionRadio = gtk_builder_get_object(_cloakInfo.builder, "extractActionRadio");
+
+    if (gtk_check_button_get_active(GTK_CHECK_BUTTON(mergeActionRadio))) {
+        openDialog = gtk_file_chooser_native_new(
+                            "Open a secret file", 
+                            (GtkWindow *)data, 
+                            GTK_FILE_CHOOSER_ACTION_OPEN, 
+                            "_Open",
+                            "_Cancel");
+
+        g_signal_connect(openDialog, "response", G_CALLBACK(handleMergeOpen), NULL);
+        gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
+    }
+    else if (gtk_check_button_get_active(GTK_CHECK_BUTTON(extractActionRadio))) {
+        openDialog = gtk_file_chooser_native_new(
+                            "Save the secret file", 
+                            (GtkWindow *)data, 
+                            GTK_FILE_CHOOSER_ACTION_SAVE, 
+                            "Save _As",
+                            "_Cancel");
+
+        g_signal_connect(openDialog, "response", G_CALLBACK(handleExtractSave), NULL);
+        gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
+    }
 }
 
 static void handleBrowseButtonClick(GtkWidget * widget, gpointer data)
@@ -185,8 +259,7 @@ static void activate(GtkApplication * app, gpointer user_data)
     GtkWidget *         actionBox;
     GtkWidget *         imageFrame;
     GtkWidget *         actionFrame;
-    GtkWidget *         mergeButton;
-    GtkWidget *         extractButton;
+    GtkWidget *         goButton;
     GtkWidget *         encryptionFrame;
     GtkWidget *         encryptionGrid;
     GtkWidget *         aesEncryptionRadio;
@@ -213,11 +286,8 @@ static void activate(GtkApplication * app, gpointer user_data)
     openButton = gtk_builder_get_object(builder, "openButton");
     g_signal_connect(openButton, "clicked", G_CALLBACK(handleOpenButtonClick), NULL);
 
-    mergeButton = gtk_builder_get_object(builder, "mergeButton");
-    g_signal_connect(mergeButton, "clicked", G_CALLBACK(handleMergeButtonClick), NULL);
-
-    extractButton = gtk_builder_get_object(builder, "extractButton");
-    g_signal_connect(extractButton, "clicked", G_CALLBACK(handleExtractButtonClick), NULL);
+    goButton = gtk_builder_get_object(builder, "goButton");
+    g_signal_connect(goButton, "clicked", G_CALLBACK(handleGoButtonClick), NULL);
 
     xorBrowseButton = gtk_builder_get_object(builder, "xorBrowseButton");
     g_signal_connect(xorBrowseButton, "clicked", G_CALLBACK(handleBrowseButtonClick), NULL);
@@ -231,6 +301,15 @@ static void activate(GtkApplication * app, gpointer user_data)
 
     lowQualityRadio = gtk_builder_get_object(builder, "lowQualityRadio");
     g_signal_connect(lowQualityRadio, "toggled", G_CALLBACK(handleLowQualityToggle), NULL);
+
+    aesEncryptionRadio = gtk_builder_get_object(builder, "aesEncryptionRadio");
+    g_signal_connect(aesEncryptionRadio, "toggled", G_CALLBACK(handleAesEncryptionToggle), NULL);
+
+    xorEncryptionRadio = gtk_builder_get_object(builder, "xorEncryptionRadio");
+    g_signal_connect(xorEncryptionRadio, "toggled", G_CALLBACK(handleXorEncryptionToggle), NULL);
+
+    noneEncryptionRadio = gtk_builder_get_object(builder, "noneEncryptionRadio");
+    g_signal_connect(noneEncryptionRadio, "toggled", G_CALLBACK(handleNoneEncryptionToggle), NULL);
 
     pixbuf = gdk_pixbuf_new_from_file_at_size("./initialImage.png", 400, 400, NULL);
     image = gtk_builder_get_object(builder, "image");
