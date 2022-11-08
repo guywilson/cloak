@@ -1,52 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <menu id="menuBar">
-     <submenu>
-       <attribute name="label">File</attribute>
-       <section>
-         <item>
-           <attribute name="label">Open</attribute>
-           <attribute name="action">win.open</attribute>
-         </item>
-       </section>
-       <section>
-         <item>
-           <attribute name="label">Save As…</attribute>
-           <attribute name="action">win.saveas</attribute>
-         </item>
-       </section>
-       <section>
-         <item>
-           <attribute name="label">Quit</attribute>
-           <attribute name="action">app.quit</attribute>
-         </item>
-       </section>
-     </submenu>
-     <submenu>
-       <attribute name="label">Action</attribute>
-       <section>
-         <item>
-           <attribute name="label">Merge...</attribute>
-           <attribute name="action">win.merge</attribute>
-         </item>
-       </section>
-       <section>
-         <item>
-           <attribute name="label">Extract...</attribute>
-           <attribute name="action">win.extract</attribute>
-         </item>
-       </section>
-     </submenu>
-  </menu>
   <object id="mainWindow" class="GtkWindow">
     <property name="title">Cloak</property>
     <child>
       <object id="mainGrid" class="GtkGrid">
         <child>
-          <object id="imageFrame" class="GtkFrame">
+          <object id="menuFrame" class="GtkFrame">
             <layout>
               <property name="column">0</property>
               <property name="row">0</property>
+              <property name="column-span">2</property>
+            </layout>
+            <property name="margin-top">10</property>
+            <property name="margin-bottom">0</property>
+            <property name="margin-start">10</property>
+            <property name="margin-end">10</property>
+            <child>
+              <object id="menuBox" class="GtkBox">
+                <property name="orientation">horizontal</property>
+                <property name="homogeneous">FALSE</property>
+                <property name="spacing">10</property>
+                <property name="halign">GTK_ALIGN_START</property>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
+                <property name="margin-start">10</property>
+                <property name="margin-end">10</property>
+                <child>
+                  <object id="openButton" class="GtkButton">
+                    <property name="label">_Open...</property>
+                    <property name="use-underline">TRUE</property>
+                    <property name="tooltip-text">Open an image file</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object id="imageFrame" class="GtkFrame">
+            <layout>
+              <property name="column">0</property>
+              <property name="row">1</property>
               <property name="row-span">2</property>
             </layout>
             <property name="margin-top">10</property>
@@ -80,7 +74,7 @@
           <object id="actionFrame" class="GtkFrame">
             <layout>
               <property name="column">0</property>
-              <property name="row">2</property>
+              <property name="row">3</property>
               <property name="column-span">2</property>
             </layout>
             <property name="margin-top">0</property>
@@ -120,7 +114,7 @@
             <property name="label">Encryption</property>
             <layout>
               <property name="column">1</property>
-              <property name="row">0</property>
+              <property name="row">1</property>
             </layout>
             <property name="margin-top">10</property>
             <property name="margin-bottom">10</property>
@@ -204,7 +198,7 @@
             <property name="label">Quality</property>
             <layout>
               <property name="column">1</property>
-              <property name="row">1</property>
+              <property name="row">2</property>
             </layout>
             <property name="margin-top">0</property>
             <property name="margin-bottom">10</property>

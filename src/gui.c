@@ -9,6 +9,8 @@
 #include "cloak_types.h"
 #include "utils.h"
 
+#define APPLICATION_ID "com.guy.cloak.cloak"
+
 typedef enum {
     actionMerge,
     actionExtract
@@ -16,6 +18,8 @@ typedef enum {
 cloak_action;
 
 typedef struct {
+    GtkBuilder *        builder;
+
     cloak_action        action;
 
     char *              pszSourceImageFile;
@@ -32,6 +36,44 @@ CLOAK_INFO;
 
 static CLOAK_INFO       _cloakInfo;
 
+
+static void refreshCapacity()
+{
+    GtkWidget *     capacityLabel;
+    uint32_t        imageCapacity;
+    char            capacityText[64];
+
+    imageCapacity = (getImageCapacity(_cloakInfo.pszSourceImageFile, _cloakInfo.quality) / 1024);
+
+    sprintf(capacityText, "Capacity: %u Kb", imageCapacity);
+
+    capacityLabel = gtk_builder_get_object(_cloakInfo.builder, "capacityLabel");
+    gtk_label_set_label(capacityLabel, capacityText);
+}
+
+static void handleImageOpen(GtkNativeDialog * dialog, int response)
+{
+    GFile *         file;
+    GdkPixbuf *     pixBuf;
+    GtkWidget *     image;
+
+    if (response == GTK_RESPONSE_ACCEPT) {
+        GtkFileChooser * chooser = GTK_FILE_CHOOSER(dialog);
+
+        file = gtk_file_chooser_get_file(chooser);
+        _cloakInfo.pszSourceImageFile = g_file_get_path(file);
+        g_print("Got file %s\n", _cloakInfo.pszSourceImageFile);
+
+        image = gtk_builder_get_object(_cloakInfo.builder, "image");
+        pixBuf = gdk_pixbuf_new_from_file(_cloakInfo.pszSourceImageFile, NULL);
+
+        gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixBuf);
+
+        refreshCapacity();
+    }
+
+    g_object_unref(dialog);
+}
 
 static void handleMergeOpen(GtkNativeDialog * dialog, int response)
 {
@@ -50,6 +92,33 @@ static void handleMergeOpen(GtkNativeDialog * dialog, int response)
     }
 
     g_object_unref(dialog);
+}
+
+static void handleHighQualityToggle(GtkWidget * radio, gpointer data)
+{
+    g_print("High-quality toggle event\n");
+    if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
+        _cloakInfo.quality = quality_high;
+        refreshCapacity();
+    }
+}
+
+static void handleMediumQualityToggle(GtkWidget * radio, gpointer data)
+{
+    g_print("Medium-quality toggle event\n");
+    if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
+        _cloakInfo.quality = quality_medium;
+        refreshCapacity();
+    }
+}
+
+static void handleLowQualityToggle(GtkWidget * radio, gpointer data)
+{
+    g_print("Low-quality toggle event\n");
+    if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
+        _cloakInfo.quality = quality_low;
+        refreshCapacity();
+    }
 }
 
 static void handleMergeButtonClick(GtkWidget * widget, gpointer data)
@@ -79,24 +148,29 @@ static void handleBrowseButtonClick(GtkWidget * widget, gpointer data)
     g_print("Hello World - Browse clicked\n");
 }
 
-static void handleMenuOpen(GSimpleAction * action, GVariant * parameter, gpointer win)
+static void handleOpenButtonClick(GtkWidget * widget, gpointer data)
 {
-}
+    GtkFileChooserNative *          openDialog;
+    GtkFileFilter *                 imageFilter;
 
-static void handleMenuSaveAs(GSimpleAction * action, GVariant * parameter, gpointer win)
-{
-}
+    g_print("Hello World - Open clicked\n");
 
-static void handleMenuQuit(GSimpleAction * action, GVariant * parameter, gpointer win)
-{
-}
+    imageFilter = gtk_file_filter_new();
 
-static void handleMenuMerge(GSimpleAction * action, GVariant * parameter, gpointer win)
-{
-}
+    gtk_file_filter_add_suffix(imageFilter, "png");
+    gtk_file_filter_add_suffix(imageFilter, "bmp");
 
-static void handleMenuExtract(GSimpleAction * action, GVariant * parameter, gpointer win)
-{
+    openDialog = gtk_file_chooser_native_new(
+                        "Open an image file", 
+                        (GtkWindow *)data, 
+                        GTK_FILE_CHOOSER_ACTION_OPEN, 
+                        "_Open",
+                        "_Cancel");
+
+    gtk_file_chooser_add_filter(openDialog, imageFilter);
+
+    g_signal_connect(openDialog, "response", G_CALLBACK(handleImageOpen), NULL);
+    gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
 }
 
 static void activate(GtkApplication * app, gpointer user_data)
@@ -104,6 +178,7 @@ static void activate(GtkApplication * app, gpointer user_data)
     GtkBuilder *        builder;
     GtkWidget *         mainWindow;
     GtkWidget *         mainGrid;
+    GtkWidget *         openButton;
     GtkWidget *         image;
     GtkWidget *         capacityLabel;
     GtkWidget *         imageBox;
@@ -126,34 +201,17 @@ static void activate(GtkApplication * app, gpointer user_data)
     GtkWidget *         mediumQualityRadio;
     GtkWidget *         lowQualityRadio;
     GdkPixbuf *         pixbuf;
-    GMenuModel *        menuBar;
 
     builder = gtk_builder_new();
     gtk_builder_add_from_file(builder, "builder.ui", NULL);
 
+    _cloakInfo.builder = builder;
+
     mainWindow = gtk_builder_get_object(builder, "mainWindow");
     gtk_window_set_application(GTK_WINDOW(mainWindow), app);
 
-    menuBar = G_MENU_MODEL(gtk_builder_get_object(builder, "menuBar"));
-
-    const GActionEntry menuEntries[] = {
-        { "open", handleMenuOpen, NULL, NULL, NULL },
-        { "saveas", handleMenuSaveAs, NULL, NULL, NULL },
-        { "quit", handleMenuQuit, NULL, NULL, NULL },
-        { "merge", handleMenuMerge, NULL, NULL, NULL },
-        { "extract", handleMenuExtract, NULL, NULL, NULL }
-    };
-
-    g_action_map_add_action_entries(
-                G_ACTION_MAP(mainWindow), 
-                menuEntries, 
-                G_N_ELEMENTS(menuEntries), 
-                mainWindow);
-
-    gtk_application_set_menubar(app, menuBar);
-    gtk_application_window_set_show_menubar(GTK_APPLICATION_WINDOW(mainWindow), TRUE);
-
-    //g_action_map_add_action_entries();
+    openButton = gtk_builder_get_object(builder, "openButton");
+    g_signal_connect(openButton, "clicked", G_CALLBACK(handleOpenButtonClick), NULL);
 
     mergeButton = gtk_builder_get_object(builder, "mergeButton");
     g_signal_connect(mergeButton, "clicked", G_CALLBACK(handleMergeButtonClick), NULL);
@@ -162,7 +220,17 @@ static void activate(GtkApplication * app, gpointer user_data)
     g_signal_connect(extractButton, "clicked", G_CALLBACK(handleExtractButtonClick), NULL);
 
     xorBrowseButton = gtk_builder_get_object(builder, "xorBrowseButton");
-    g_signal_connect_swapped(xorBrowseButton, "clicked", G_CALLBACK(handleBrowseButtonClick), NULL);
+    g_signal_connect(xorBrowseButton, "clicked", G_CALLBACK(handleBrowseButtonClick), NULL);
+
+    highQualityRadio = gtk_builder_get_object(builder, "highQualityRadio");
+    g_signal_connect(highQualityRadio, "toggled", G_CALLBACK(handleHighQualityToggle), NULL);
+    _cloakInfo.quality = quality_high;
+
+    mediumQualityRadio = gtk_builder_get_object(builder, "mediumQualityRadio");
+    g_signal_connect(mediumQualityRadio, "toggled", G_CALLBACK(handleMediumQualityToggle), NULL);
+
+    lowQualityRadio = gtk_builder_get_object(builder, "lowQualityRadio");
+    g_signal_connect(lowQualityRadio, "toggled", G_CALLBACK(handleLowQualityToggle), NULL);
 
     pixbuf = gdk_pixbuf_new_from_file_at_size("./initialImage.png", 400, 400, NULL);
     image = gtk_builder_get_object(builder, "image");
@@ -170,8 +238,6 @@ static void activate(GtkApplication * app, gpointer user_data)
     gtk_widget_set_size_request(image, 400, 400);
 
     gtk_widget_show(mainWindow);
-
-    g_object_unref(builder);
 
     // mainWindow = gtk_application_window_new(app);
     // gtk_window_set_title(GTK_WINDOW(mainWindow), "Cloak");
@@ -337,13 +403,14 @@ int initiateGUI(int argc, char ** argv)
     GtkApplication *	app;
 	int					status;
 
-	app = gtk_application_new("com.guy.cloak", G_APPLICATION_DEFAULT_FLAGS);
+	app = gtk_application_new(APPLICATION_ID, G_APPLICATION_DEFAULT_FLAGS);
 
 	g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
 
 	status = g_application_run(G_APPLICATION(app), argc, argv);
 
 	g_object_unref(app);
+    g_object_unref(_cloakInfo.builder);
 
 	return status;
 }

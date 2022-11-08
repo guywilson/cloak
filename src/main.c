@@ -11,7 +11,6 @@
 #include "test.h"
 #include "version.h"
 
-
 int _getProgNameStartPos(char * pszProgName)
 {
 	int i = strlen(pszProgName);
