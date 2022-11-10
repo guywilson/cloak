@@ -47,7 +47,7 @@ uint32_t getKey(uint8_t * keyBuffer, uint32_t keyBufferLength, const char * pwd)
         strncpy(szPassword, pwd, MAX_PASSWORD_LENGTH);
     }
 
-	gcry_md_hash_buffer(GCRY_MD_SHA3_256, keyBuffer, szPassword, i);
+	gcry_md_hash_buffer(GCRY_MD_SHA3_256, keyBuffer, szPassword, strlen(szPassword));
     wipeBuffer(szPassword, MAX_PASSWORD_LENGTH + 1);
 
 	keySize = gcry_md_get_algo_dlen(GCRY_MD_SHA3_256);

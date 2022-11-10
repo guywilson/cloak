@@ -77,8 +77,15 @@ static void handleImageOpen(GtkNativeDialog * dialog, int response)
 
 static void handleMergeOpen(GtkNativeDialog * dialog, int response)
 {
+    GtkWidget *     aesPasswordField;
     GFile *         file;
     char *          pszSecretFilename;
+    char            szOutputImage[512];
+    const char *    pszPassword;
+    uint8_t         key[64];
+    uint32_t        keyLength;
+    const char *    pszQuality;
+    const char *    pszAlgo;
 
     if (response == GTK_RESPONSE_ACCEPT) {
         GtkFileChooser * chooser = GTK_FILE_CHOOSER(dialog);
@@ -86,6 +93,61 @@ static void handleMergeOpen(GtkNativeDialog * dialog, int response)
         file = gtk_file_chooser_get_file(chooser);
         pszSecretFilename = g_file_get_path(file);
         g_print("Got file %s\n", pszSecretFilename);
+
+        strcpy(szOutputImage, "cloak_out.");
+        strncat(szOutputImage, getFileExtension(_cloakInfo.pszSourceImageFile), 512);
+
+        if (_cloakInfo.algo = aes256) {
+            aesPasswordField = gtk_builder_get_object(_cloakInfo.builder, "aesPasswordField");
+            pszPassword = gtk_editable_get_text(GTK_PASSWORD_ENTRY(aesPasswordField));
+
+            keyLength = getKey(key, 64, pszPassword);
+        }
+
+        switch (_cloakInfo.quality) {
+            case quality_high:
+                pszQuality = "high";
+                break;
+
+            case quality_medium:
+                pszQuality = "medium";
+                break;
+
+            case quality_low:
+                pszQuality = "low";
+                break;
+        }
+
+        switch (_cloakInfo.algo) {
+            case aes256:
+                pszAlgo = "AES";
+                break;
+
+            case xor:
+                pszAlgo = "XOR";
+                break;
+
+            case none:
+                pszAlgo = "Unencrypted";
+                break;
+        }
+
+        g_print("Source image: %s\n", _cloakInfo.pszSourceImageFile);
+        g_print("Secret file: %s\n", pszSecretFilename);
+        g_print("Keystream file: %s\n", _cloakInfo.pszKeystreamFile);
+        g_print("Output image: %s\n", szOutputImage);
+        g_print("Quality: %s\n", pszQuality);
+        g_print("Algorithm: %s\n", pszAlgo);
+
+        merge(
+            _cloakInfo.pszSourceImageFile, 
+            pszSecretFilename, 
+            _cloakInfo.pszKeystreamFile, 
+            szOutputImage, 
+            _cloakInfo.quality, 
+            _cloakInfo.algo,
+            key,
+            keyLength);
     }
 
     g_object_unref(dialog);
