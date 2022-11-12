@@ -51,6 +51,20 @@ static void refreshCapacity()
     gtk_label_set_label(GTK_LABEL(capacityLabel), capacityText);
 }
 
+static void handleKeystreamOpen(GtkNativeDialog * dialog, int response)
+{
+    GFile *         file;
+
+    if (response == GTK_RESPONSE_ACCEPT) {
+        GtkFileChooser * chooser = GTK_FILE_CHOOSER(dialog);
+
+        file = gtk_file_chooser_get_file(chooser);
+        _cloakInfo.pszKeystreamFile = g_file_get_path(file);
+    }
+
+    g_object_unref(dialog);
+}
+
 static void handleImageOpen(GtkNativeDialog * dialog, int response)
 {
     GFile *         file;
@@ -269,7 +283,17 @@ static void handleGoButtonClick(GtkWidget * widget, gpointer data)
 
 static void handleBrowseButtonClick(GtkWidget * widget, gpointer data)
 {
-    g_print("Hello World - Browse clicked\n");
+    GtkFileChooserNative *          openDialog;
+
+    openDialog = gtk_file_chooser_native_new(
+                        "Open a keystream file", 
+                        (GtkWindow *)data, 
+                        GTK_FILE_CHOOSER_ACTION_OPEN, 
+                        "_Open",
+                        "_Cancel");
+
+    g_signal_connect(openDialog, "response", G_CALLBACK(handleKeystreamOpen), NULL);
+    gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
 }
 
 static void handleOpenButtonClick(GtkWidget * widget, gpointer data)
