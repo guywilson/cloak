@@ -27,9 +27,20 @@
                 <property name="margin-end">10</property>
                 <child>
                   <object id="openButton" class="GtkButton">
-                    <property name="label">_Open...</property>
+                    <property name="label">_Open image...</property>
                     <property name="use-underline">TRUE</property>
                     <property name="tooltip-text">Open an image file</property>
+                    <property name="width-request">150</property>
+                    <property name="height-request">25</property>
+                  </object>
+                </child>
+                <child>
+                  <object id="setButton" class="GtkButton">
+                    <property name="label">_Set secret file...</property>
+                    <property name="use-underline">TRUE</property>
+                    <property name="tooltip-text">Set the secret file</property>
+                    <property name="width-request">150</property>
+                    <property name="height-request">25</property>
                   </object>
                 </child>
               </object>

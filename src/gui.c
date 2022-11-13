@@ -319,6 +319,49 @@ static void handleOpenButtonClick(GtkWidget * widget, gpointer data)
     gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
 }
 
+static gboolean handleImageDrop(
+                    GtkDropTarget * target, 
+                    const GValue * value,
+                    double x,
+                    double y,
+                    gpointer data)
+{
+    GdkPixbuf *     pixBuf;
+    GtkWidget *     image = GTK_WIDGET(data);
+    GdkFileList *   fileList;
+    GSList *        list;
+    char *          filePath;
+
+    if (G_VALUE_HOLDS(value, GDK_TYPE_FILE_LIST)) {
+        fileList = g_value_get_boxed(value);
+        list = gdk_file_list_get_files(fileList);
+
+        filePath = g_file_get_path(list->data);
+
+        if (
+            strncmp(getFileExtension(filePath), "png", 3) == 0 || 
+            strncmp(getFileExtension(filePath), "bmp", 3) == 0)
+        {
+            _cloakInfo.pszSourceImageFile = filePath;
+        }
+        else {
+            g_print("File dropped '%s' is not supported\n", filePath);
+            return FALSE;
+        }
+
+        pixBuf = gdk_pixbuf_new_from_file(_cloakInfo.pszSourceImageFile, NULL);
+
+        gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixBuf);
+
+        refreshCapacity();
+    }
+    else {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 static void activate(GtkApplication * app, gpointer user_data)
 {
     GtkBuilder *        builder;
@@ -334,6 +377,7 @@ static void activate(GtkApplication * app, gpointer user_data)
     GtkWidget *         mediumQualityRadio;
     GtkWidget *         lowQualityRadio;
     GdkPixbuf *         pixbuf;
+    GtkDropTarget *     dropTarget;
 
     builder = gtk_builder_new();
     gtk_builder_add_from_file(builder, "builder.ui", NULL);
@@ -376,6 +420,11 @@ static void activate(GtkApplication * app, gpointer user_data)
     image = (GtkWidget *)gtk_builder_get_object(builder, "image");
     gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
     gtk_widget_set_size_request(image, 400, 400);
+
+    dropTarget = gtk_drop_target_new(GDK_TYPE_FILE_LIST, GDK_ACTION_COPY);
+
+    g_signal_connect(dropTarget, "drop", G_CALLBACK(handleImageDrop), image);
+    gtk_widget_add_controller(GTK_WIDGET(image), GTK_EVENT_CONTROLLER(dropTarget));
 
     gtk_widget_show(mainWindow);
 }
