@@ -379,8 +379,7 @@ static void activate(GtkApplication * app, gpointer user_data)
     GdkPixbuf *         pixbuf;
     GtkDropTarget *     dropTarget;
 
-    builder = gtk_builder_new();
-    gtk_builder_add_from_file(builder, "builder.ui", NULL);
+    builder = gtk_builder_new_from_resource("/com/guy/cloak/builder.ui");
 
     _cloakInfo.builder = builder;
 
@@ -416,7 +415,7 @@ static void activate(GtkApplication * app, gpointer user_data)
     noneEncryptionRadio = (GtkWidget *)gtk_builder_get_object(builder, "noneEncryptionRadio");
     g_signal_connect(noneEncryptionRadio, "toggled", G_CALLBACK(handleNoneEncryptionToggle), NULL);
 
-    pixbuf = gdk_pixbuf_new_from_file_at_size("./initialImage.png", 400, 400, NULL);
+    pixbuf = gdk_pixbuf_new_from_resource_at_scale("/com/guy/cloak/initialimage.png", 400, 400, TRUE, NULL);
     image = (GtkWidget *)gtk_builder_get_object(builder, "image");
     gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
     gtk_widget_set_size_request(image, 400, 400);

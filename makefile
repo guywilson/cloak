@@ -20,8 +20,13 @@ TARGET = cloak
 
 # Tools
 VBUILD = vbuild
-C = gcc
+CC = gcc
 LINKER = gcc
+RESOURCEC=glib-compile-resources
+
+RESOURCETARGET=$(SOURCE)/cloak-resources.c
+RESOURCEDEF=cloak.gresource.xml
+RESOURCEXML=builder.ui
 
 # postcompile step
 PRECOMPILE = @ mkdir -p $(BUILD) $(DEP)
@@ -29,13 +34,15 @@ PRECOMPILE = @ mkdir -p $(BUILD) $(DEP)
 POSTCOMPILE = @ mv -f $(DEP)/$*.Td $(DEP)/$*.d
 
 CFLAGS = -c -O2 -Wall -pedantic -I/opt/homebrew/include -I/Users/guy/Library/include `pkg-config --cflags gtk4`
+RESOURCEFLAGS = --target=$@ --sourcedir=. --compiler=$(CC) --generate-source 
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEP)/$*.Td
 
 # Libraries
 STDLIBS = 
 EXTLIBS = -lgcrypt -lpng `pkg-config --libs gtk4`
 
-COMPILE.c = $(C) $(CFLAGS) $(DEPFLAGS) -o $@
+COMPILE.c = $(CC) $(CFLAGS) $(DEPFLAGS) -o $@
+RESOURCE.c = $(RESOURCEC) $(RESOURCEFLAGS)
 LINK.o = $(LINKER) $(STDLIBS) -L/opt/homebrew/lib -L/Users/guy/Library/lib -o $@
 
 CSRCFILES = $(wildcard $(SOURCE)/*.c)
@@ -54,6 +61,9 @@ $(BUILD)/%.o: $(SOURCE)/%.c $(DEP)/%.d
 	$(PRECOMPILE)
 	$(COMPILE.c) $<
 	$(POSTCOMPILE)
+
+$(RESOURCETARGET): $(RESOURCEDEF) $(RESOURCEXML)
+	$(RESOURCE.c) $<
 
 .PRECIOUS = $(DEP)/%.d
 $(DEP)/%.d: ;

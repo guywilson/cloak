@@ -8,3 +8,4 @@ cloak
 *.bmp
 *.out
 .DS_Store
+src/cloak-resources.c
