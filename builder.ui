@@ -5,49 +5,6 @@
     <child>
       <object id="mainGrid" class="GtkGrid">
         <child>
-          <object id="menuFrame" class="GtkFrame">
-            <layout>
-              <property name="column">0</property>
-              <property name="row">0</property>
-              <property name="column-span">2</property>
-            </layout>
-            <property name="margin-top">10</property>
-            <property name="margin-bottom">0</property>
-            <property name="margin-start">10</property>
-            <property name="margin-end">10</property>
-            <child>
-              <object id="menuBox" class="GtkBox">
-                <property name="orientation">horizontal</property>
-                <property name="homogeneous">FALSE</property>
-                <property name="spacing">10</property>
-                <property name="halign">GTK_ALIGN_START</property>
-                <property name="margin-top">10</property>
-                <property name="margin-bottom">10</property>
-                <property name="margin-start">10</property>
-                <property name="margin-end">10</property>
-                <child>
-                  <object id="openButton" class="GtkButton">
-                    <property name="label">_Open image...</property>
-                    <property name="use-underline">TRUE</property>
-                    <property name="tooltip-text">Open an image file</property>
-                    <property name="width-request">150</property>
-                    <property name="height-request">25</property>
-                  </object>
-                </child>
-                <child>
-                  <object id="setButton" class="GtkButton">
-                    <property name="label">_Set secret file...</property>
-                    <property name="use-underline">TRUE</property>
-                    <property name="tooltip-text">Set the secret file</property>
-                    <property name="width-request">150</property>
-                    <property name="height-request">25</property>
-                  </object>
-                </child>
-              </object>
-            </child>
-          </object>
-        </child>
-        <child>
           <object id="imageFrame" class="GtkFrame">
             <layout>
               <property name="column">0</property>
@@ -67,6 +24,15 @@
                 <property name="margin-bottom">10</property>
                 <property name="margin-start">10</property>
                 <property name="margin-end">10</property>
+                <child>
+                  <object id="openButton" class="GtkButton">
+                    <property name="label">_Open image...</property>
+                    <property name="use-underline">TRUE</property>
+                    <property name="tooltip-text">Open an image file</property>
+                    <property name="width-request">150</property>
+                    <property name="height-request">25</property>
+                  </object>
+                </child>
                 <child>
                   <object id="image" class="GtkImage">
                   </object>
@@ -106,6 +72,7 @@
                   <object id="goButton" class="GtkButton">
                     <property name="label">Go</property>
                     <property name="use-underline">TRUE</property>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
               </object>
@@ -140,6 +107,7 @@
                     </layout>
                     <property name="label">AES</property>
                     <property name="active">TRUE</property>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
                 <child>
@@ -147,11 +115,12 @@
                     <layout>
                       <property name="column">1</property>
                       <property name="row">0</property>
-                      <property name="column-span">2</property>
+                      <property name="column-span">3</property>
                     </layout>
                     <property name="width-request">100</property>
                     <property name="height-request">16</property>
-                    <property name="sensitive">TRUE</property>
+                    <property name="placeholder-text">password</property>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
                 <child>
@@ -162,6 +131,7 @@
                     </layout>
                     <property name="label">XOR</property>
                     <property name="group">aesEncryptionRadio</property>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
                 <child>
@@ -170,6 +140,7 @@
                       <property name="column">1</property>
                       <property name="row">1</property>
                     </layout>
+                    <property name="placeholder-text">browse for file</property>
                     <property name="sensitive">FALSE</property>
                   </object>
                 </child>
@@ -186,6 +157,18 @@
                   </object>
                 </child>
                 <child>
+                  <object id="xorGenerateButton" class="GtkButton">
+                    <layout>
+                      <property name="column">3</property>
+                      <property name="row">1</property>
+                    </layout>
+                    <property name="label">_Generate...</property>
+                    <property name="use-underline">TRUE</property>
+                    <property name="tooltip-text">Generate keystream file</property>
+                    <property name="sensitive">FALSE</property>
+                  </object>
+                </child>
+                <child>
                   <object id="noneEncryptionRadio" class="GtkCheckButton">
                     <layout>
                       <property name="column">0</property>
@@ -193,6 +176,7 @@
                     </layout>
                     <property name="label">None</property>
                     <property name="group">aesEncryptionRadio</property>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
               </object>
@@ -223,18 +207,21 @@
                   <object id="highQualityRadio" class="GtkCheckButton">
                     <property name="label">High (1-bit)</property>
                     <property name="active">TRUE</property>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
                 <child>
                   <object id="mediumQualityRadio" class="GtkCheckButton">
                     <property name="label">Medium (2-bit)</property>
                     <property name="group">highQualityRadio</property>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
                 <child>
                   <object id="lowQualityRadio" class="GtkCheckButton">
                     <property name="label">Low (4-bit)</property>
                     <property name="group">highQualityRadio</property>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
               </object>
@@ -265,12 +252,14 @@
                   <object id="mergeActionRadio" class="GtkCheckButton">
                     <property name="label">Merge</property>
                     <property name="active">TRUE</property>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
                 <child>
                   <object id="extractActionRadio" class="GtkCheckButton">
                     <property name="label">Extract</property>
                     <property name="group">mergeActionRadio</property>
+                    <property name="sensitive">FALSE</property>
                   </object>
                 </child>
               </object>
