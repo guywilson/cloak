@@ -62,7 +62,7 @@ $(BUILD)/%.o: $(SOURCE)/%.c $(DEP)/%.d
 	$(COMPILE.c) $<
 	$(POSTCOMPILE)
 
-$(RESOURCETARGET): $(RESOURCEDEF) $(RESOURCEXML) initialimage.png
+$(RESOURCETARGET): $(RESOURCEDEF) $(RESOURCEXML) menu.ui initialimage.png
 	$(RESOURCE.c) $<
 
 .PRECIOUS = $(DEP)/%.d
