@@ -143,9 +143,11 @@ static gboolean handleFileDrop(
     static drop_mode    mode = modeImageDrop;
     GdkPixbuf *         pixBuf;
     GtkWidget *         image = GTK_WIDGET(data);
+    GtkWidget *         goLabel;
     GdkFileList *       fileList;
     GSList *            list;
     char *              filePath;
+    char                szAction[256];
 
     if (G_VALUE_HOLDS(value, GDK_TYPE_FILE_LIST)) {
         fileList = g_value_get_boxed(value);
@@ -176,6 +178,12 @@ static gboolean handleFileDrop(
             }
             else {
                 _cloakInfo.pszSourceSecretFile = filePath;
+
+                sprintf(szAction, "Adding file '%s' to image", filePath);
+
+                goLabel = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "goLabel");
+                gtk_label_set_label(GTK_LABEL(goLabel), szAction);
+
                 mode = modeImageDrop;
                 return TRUE;
             }
