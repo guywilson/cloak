@@ -33,9 +33,6 @@ typedef struct {
     char *              pszOutputFile;
     char *              pszKeystreamFile;
 
-    uint8_t *           key;
-    uint32_t            keyLength;
-
     merge_quality       quality;
     encryption_algo     algo;
 }
@@ -56,6 +53,45 @@ static void refreshCapacity()
 
     capacityLabel = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "capacityLabel");
     gtk_label_set_label(GTK_LABEL(capacityLabel), capacityText);
+}
+
+static void resetGUI()
+{
+    _cloakInfo.action = actionMerge;
+    _cloakInfo.pszSourceImageFile = NULL;
+    _cloakInfo.pszSourceSecretFile = NULL;
+    _cloakInfo.pszOutputFile = NULL;
+    _cloakInfo.pszKeystreamFile = NULL;
+    _cloakInfo.quality = quality_high;
+    _cloakInfo.algo = aes256;
+}
+
+static void onImageLoad()
+{
+    static const char * fieldsToEnable[] = {
+        "aesEncryptionRadio",
+        "aesPasswordField",
+        "xorEncryptionRadio",
+        "noneEncryptionRadio",
+        "highQualityRadio",
+        "mediumQualityRadio",
+        "lowQualityRadio",
+        "mergeLabel",
+        "extractLabel",
+        "actionSwitch",
+        "addFileButton",
+        "N/A"
+    };
+
+    int             i = 0;
+    GtkWidget *     widget;
+
+    while (strcmp(fieldsToEnable[i], "N/A") != 0) {
+        widget = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, fieldsToEnable[i]);
+
+        gtk_widget_set_sensitive(widget, TRUE);
+        i++;
+    }
 }
 
 static void handleKeystreamOpen(GtkNativeDialog * dialog, int response)
@@ -89,10 +125,75 @@ static void handleImageOpen(GtkNativeDialog * dialog, int response)
 
         gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixBuf);
 
+        onImageLoad();
+
         refreshCapacity();
     }
 
     g_object_unref(dialog);
+}
+
+static gboolean handleFileDrop(
+                    GtkDropTarget * target, 
+                    const GValue * value,
+                    double x,
+                    double y,
+                    gpointer data)
+{
+    static drop_mode    mode = modeImageDrop;
+    GdkPixbuf *         pixBuf;
+    GtkWidget *         image = GTK_WIDGET(data);
+    GdkFileList *       fileList;
+    GSList *            list;
+    char *              filePath;
+
+    if (G_VALUE_HOLDS(value, GDK_TYPE_FILE_LIST)) {
+        fileList = g_value_get_boxed(value);
+        list = gdk_file_list_get_files(fileList);
+
+        filePath = g_file_get_path(list->data);
+
+        if (mode == modeImageDrop) {
+            if (
+                strncmp(getFileExtension(filePath), "png", 3) == 0 || 
+                strncmp(getFileExtension(filePath), "bmp", 3) == 0)
+            {
+                _cloakInfo.pszSourceImageFile = filePath;
+                mode = modeFileDrop;
+            }
+            else {
+                g_print("File dropped '%s' is not supported\n", filePath);
+                return FALSE;
+            }
+        }
+        else {
+            if (
+                strncmp(getFileExtension(filePath), "png", 3) == 0 || 
+                strncmp(getFileExtension(filePath), "bmp", 3) == 0)
+            {
+                _cloakInfo.pszSourceImageFile = filePath;
+                mode = modeFileDrop;
+            }
+            else {
+                _cloakInfo.pszSourceSecretFile = filePath;
+                mode = modeImageDrop;
+                return TRUE;
+            }
+        }
+
+        pixBuf = gdk_pixbuf_new_from_file(_cloakInfo.pszSourceImageFile, NULL);
+
+        gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixBuf);
+
+        onImageLoad();
+
+        refreshCapacity();
+    }
+    else {
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 static void handleMergeOpen(GtkNativeDialog * dialog, int response)
@@ -176,6 +277,34 @@ static void handleExtractSave(GtkNativeDialog * dialog, int response)
     }
 
     g_object_unref(dialog);
+}
+
+static void handleActionSwitchState(GtkWidget * widget, gboolean state, gpointer data)
+{
+    GtkWidget *         addFileButton;
+    GtkWidget *         extractFileButton;
+
+    addFileButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "addFileButton");
+    extractFileButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "extractFileButton");
+
+    if (state) {
+        gtk_widget_set_sensitive(addFileButton, FALSE);
+        gtk_widget_set_sensitive(extractFileButton, TRUE);
+    }
+    else {
+        gtk_widget_set_sensitive(addFileButton, TRUE);
+        gtk_widget_set_sensitive(extractFileButton, FALSE);
+    }
+}
+
+static void handleAddFileButtonClick(GtkWidget * widget, gpointer data)
+{
+
+}
+
+static void handleExtractFileButtonClick(GtkWidget * widget, gpointer data)
+{
+    
 }
 
 static void handleHighQualityToggle(GtkWidget * radio, gpointer data)
@@ -324,70 +453,11 @@ static void handleOpenButtonClick(GtkWidget * widget, gpointer data)
     gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
 }
 
-static gboolean handleFileDrop(
-                    GtkDropTarget * target, 
-                    const GValue * value,
-                    double x,
-                    double y,
-                    gpointer data)
-{
-    static drop_mode    mode = modeImageDrop;
-    GdkPixbuf *         pixBuf;
-    GtkWidget *         image = GTK_WIDGET(data);
-    GdkFileList *       fileList;
-    GSList *            list;
-    char *              filePath;
-
-    if (G_VALUE_HOLDS(value, GDK_TYPE_FILE_LIST)) {
-        fileList = g_value_get_boxed(value);
-        list = gdk_file_list_get_files(fileList);
-
-        filePath = g_file_get_path(list->data);
-
-        if (mode == modeImageDrop) {
-            if (
-                strncmp(getFileExtension(filePath), "png", 3) == 0 || 
-                strncmp(getFileExtension(filePath), "bmp", 3) == 0)
-            {
-                _cloakInfo.pszSourceImageFile = filePath;
-                mode = modeFileDrop;
-            }
-            else {
-                g_print("File dropped '%s' is not supported\n", filePath);
-                return FALSE;
-            }
-        }
-        else {
-            if (
-                strncmp(getFileExtension(filePath), "png", 3) == 0 || 
-                strncmp(getFileExtension(filePath), "bmp", 3) == 0)
-            {
-                _cloakInfo.pszSourceImageFile = filePath;
-                mode = modeFileDrop;
-            }
-            else {
-                _cloakInfo.pszSourceSecretFile = filePath;
-                mode = modeImageDrop;
-                return TRUE;
-            }
-        }
-
-        pixBuf = gdk_pixbuf_new_from_file(_cloakInfo.pszSourceImageFile, NULL);
-
-        gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixBuf);
-
-        refreshCapacity();
-    }
-    else {
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
 static void activate(GtkApplication * app, gpointer user_data)
 {
     GtkBuilder *        builder;
+    GdkPixbuf *         pixbuf;
+    GtkDropTarget *     dropTarget;
     // GtkBuilder *        menuBuilder;
     // GMenuModel *        menuBar;
     GtkWidget *         mainWindow;
@@ -401,8 +471,9 @@ static void activate(GtkApplication * app, gpointer user_data)
     GtkWidget *         highQualityRadio;
     GtkWidget *         mediumQualityRadio;
     GtkWidget *         lowQualityRadio;
-    GdkPixbuf *         pixbuf;
-    GtkDropTarget *     dropTarget;
+    GtkWidget *         actionSwitch;
+    GtkWidget *         addFileButton;
+    GtkWidget *         extractFileButton;
 
     builder = gtk_builder_new_from_resource("/com/guy/cloak/builder.ui");
 
@@ -445,6 +516,15 @@ static void activate(GtkApplication * app, gpointer user_data)
 
     noneEncryptionRadio = (GtkWidget *)gtk_builder_get_object(builder, "noneEncryptionRadio");
     g_signal_connect(noneEncryptionRadio, "toggled", G_CALLBACK(handleNoneEncryptionToggle), NULL);
+
+    actionSwitch = (GtkWidget *)gtk_builder_get_object(builder, "actionSwitch");
+    g_signal_connect(actionSwitch, "state-set", G_CALLBACK(handleActionSwitchState), NULL);
+
+    addFileButton = (GtkWidget *)gtk_builder_get_object(builder, "addFileButton");
+    g_signal_connect(addFileButton, "clicked", G_CALLBACK(handleAddFileButtonClick), NULL);
+
+    extractFileButton = (GtkWidget *)gtk_builder_get_object(builder, "extractFileButton");
+    g_signal_connect(extractFileButton, "clicked", G_CALLBACK(handleExtractFileButtonClick), NULL);
 
     pixbuf = gdk_pixbuf_new_from_resource_at_scale("/com/guy/cloak/initialimage.png", 400, 400, TRUE, NULL);
     image = (GtkWidget *)gtk_builder_get_object(builder, "image");

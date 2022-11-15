@@ -59,20 +59,34 @@
             <property name="margin-start">10</property>
             <property name="margin-end">10</property>
             <child>
-              <object id="goBox" class="GtkBox">
-                <property name="orientation">horizontal</property>
-                <property name="homogeneous">FALSE</property>
-                <property name="spacing">10</property>
-                <property name="halign">GTK_ALIGN_END</property>
+              <object id="goGrid" class="GtkGrid">
+                <property name="column-homogeneous">TRUE</property>
+                <property name="row-spacing">8</property>
+                <property name="column-spacing">8</property>
                 <property name="margin-top">10</property>
                 <property name="margin-bottom">10</property>
                 <property name="margin-start">10</property>
                 <property name="margin-end">10</property>
                 <child>
+                  <object id="goLabel" class="GtkLabel">
+                    <layout>
+                      <property name="column">0</property>
+                      <property name="row">0</property>
+                    </layout>
+                    <property name="label">Action</property>
+                    <property name="halign">GTK_ALIGN_START</property>
+                  </object>
+                </child>
+                <child>
                   <object id="goButton" class="GtkButton">
+                    <layout>
+                      <property name="column">1</property>
+                      <property name="row">0</property>
+                    </layout>
                     <property name="label">Go</property>
                     <property name="use-underline">TRUE</property>
                     <property name="sensitive">FALSE</property>
+                    <property name="halign">GTK_ALIGN_END</property>
                   </object>
                 </child>
               </object>
@@ -140,7 +154,7 @@
                       <property name="column">1</property>
                       <property name="row">1</property>
                     </layout>
-                    <property name="placeholder-text">browse for file</property>
+                    <property name="placeholder-text">OTP keystream file</property>
                     <property name="sensitive">FALSE</property>
                   </object>
                 </child>
@@ -249,17 +263,62 @@
                 <property name="margin-end">10</property>
                 <property name="spacing">10</property>
                 <child>
-                  <object id="mergeActionRadio" class="GtkCheckButton">
-                    <property name="label">Merge</property>
-                    <property name="active">TRUE</property>
-                    <property name="sensitive">FALSE</property>
+                  <object id="actionGrid" class="GtkGrid">
+                    <property name="row-homogeneous">FALSE</property>
+                    <property name="row-spacing">8</property>
+                    <property name="column-spacing">8</property>
+                    <child>
+                      <object id="mergeLabel" class="GtkLabel">
+                        <layout>
+                          <property name="column">0</property>
+                          <property name="row">0</property>
+                        </layout>
+                        <property name="label">Merge</property>
+                        <property name="sensitive">FALSE</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object id="actionSwitch" class="GtkSwitch">
+                        <layout>
+                          <property name="column">1</property>
+                          <property name="row">0</property>
+                        </layout>
+                        <property name="sensitive">FALSE</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object id="extractLabel" class="GtkLabel">
+                        <layout>
+                          <property name="column">2</property>
+                          <property name="row">0</property>
+                        </layout>
+                        <property name="label">Extract</property>
+                        <property name="sensitive">FALSE</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
                 <child>
-                  <object id="extractActionRadio" class="GtkCheckButton">
-                    <property name="label">Extract</property>
-                    <property name="group">mergeActionRadio</property>
-                    <property name="sensitive">FALSE</property>
+                  <object id="actionButtonBox" class="GtkBox">
+                    <property name="orientation">horizontal</property>
+                    <property name="homogeneous">FALSE</property>
+                    <property name="spacing">10</property>
+                    <child>
+                      <object id="addFileButton" class="GtkButton">
+                        <property name="label">Choose file to add</property>
+                        <property name="width-request">150</property>
+                        <property name="height-request">25</property>
+                        <property name="sensitive">FALSE</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object id="extractFileButton" class="GtkButton">
+                        <property name="label">Choose file to extract</property>
+                        <property name="width-request">150</property>
+                        <property name="height-request">25</property>
+                        <property name="sensitive">FALSE</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
