@@ -55,17 +55,6 @@ static void refreshCapacity()
     gtk_label_set_label(GTK_LABEL(capacityLabel), capacityText);
 }
 
-static void resetGUI()
-{
-    _cloakInfo.action = actionMerge;
-    _cloakInfo.pszSourceImageFile = NULL;
-    _cloakInfo.pszSourceSecretFile = NULL;
-    _cloakInfo.pszOutputFile = NULL;
-    _cloakInfo.pszKeystreamFile = NULL;
-    _cloakInfo.quality = quality_high;
-    _cloakInfo.algo = aes256;
-}
-
 static void onImageLoad()
 {
     static const char * fieldsToEnable[] = {
@@ -144,6 +133,7 @@ static gboolean handleFileDrop(
     GdkPixbuf *         pixBuf;
     GtkWidget *         image = GTK_WIDGET(data);
     GtkWidget *         goLabel;
+    GtkWidget *         goButton;
     GdkFileList *       fileList;
     GSList *            list;
     char *              filePath;
@@ -184,6 +174,9 @@ static gboolean handleFileDrop(
                 goLabel = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "goLabel");
                 gtk_label_set_label(GTK_LABEL(goLabel), szAction);
 
+                goButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "goButton");
+                gtk_widget_set_sensitive(goButton, TRUE);
+
                 mode = modeImageDrop;
                 return TRUE;
             }
@@ -206,14 +199,10 @@ static gboolean handleFileDrop(
 
 static void handleMergeOpen(GtkNativeDialog * dialog, int response)
 {
-    GdkPixbuf *     pixBuf;
-    GtkWidget *     image;
-    GtkWidget *     aesPasswordField;
-    GFile *         file;
-    char            szOutputImage[512];
-    const char *    pszPassword;
-    uint8_t         key[64];
-    uint32_t        keyLength = 0U;
+    GFile *             file;
+    GtkWidget *         goLabel;
+    GtkWidget *         goButton;
+    char                szAction[256];
 
     if (response == GTK_RESPONSE_ACCEPT) {
         GtkFileChooser * chooser = GTK_FILE_CHOOSER(dialog);
@@ -221,32 +210,13 @@ static void handleMergeOpen(GtkNativeDialog * dialog, int response)
         file = gtk_file_chooser_get_file(chooser);
         _cloakInfo.pszSourceSecretFile = g_file_get_path(file);
 
-        strcpy(szOutputImage, "cloak_out.");
-        strncat(szOutputImage, getFileExtension(_cloakInfo.pszSourceImageFile), 512);
+        sprintf(szAction, "Adding file '%s' to image", _cloakInfo.pszSourceSecretFile);
 
-        if (_cloakInfo.algo == aes256) {
-            aesPasswordField = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "aesPasswordField");
-            pszPassword = gtk_editable_get_text(GTK_EDITABLE(aesPasswordField));
+        goLabel = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "goLabel");
+        gtk_label_set_label(GTK_LABEL(goLabel), szAction);
 
-            keyLength = getKey(key, 64, pszPassword);
-        }
-
-        merge(
-            _cloakInfo.pszSourceImageFile, 
-            _cloakInfo.pszSourceSecretFile, 
-            _cloakInfo.pszKeystreamFile, 
-            szOutputImage, 
-            _cloakInfo.quality, 
-            _cloakInfo.algo,
-            key,
-            keyLength);
-
-        free(_cloakInfo.pszSourceImageFile);
-
-        image = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "image");
-        pixBuf = gdk_pixbuf_new_from_file(szOutputImage, NULL);
-
-        gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixBuf);
+        goButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "goButton");
+        gtk_widget_set_sensitive(goButton, TRUE);
     }
 
     g_object_unref(dialog);
@@ -254,34 +224,24 @@ static void handleMergeOpen(GtkNativeDialog * dialog, int response)
 
 static void handleExtractSave(GtkNativeDialog * dialog, int response)
 {
-    GtkWidget *     aesPasswordField;
-    GFile *         file;
-    const char *    pszPassword;
-    uint8_t         key[64];
-    uint32_t        keyLength = 0U;
+    GFile *             file;
+    GtkWidget *         goLabel;
+    GtkWidget *         goButton;
+    char                szAction[256];
 
     if (response == GTK_RESPONSE_ACCEPT) {
         GtkFileChooser * chooser = GTK_FILE_CHOOSER(dialog);
 
         file = gtk_file_chooser_get_file(chooser);
         _cloakInfo.pszOutputFile = g_file_get_path(file);
-        g_print("Got file %s\n", _cloakInfo.pszOutputFile);
 
-        if (_cloakInfo.algo == aes256) {
-            aesPasswordField = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "aesPasswordField");
-            pszPassword = gtk_editable_get_text(GTK_EDITABLE(aesPasswordField));
+        sprintf(szAction, "Extracting file '%s' from image", _cloakInfo.pszOutputFile);
 
-            keyLength = getKey(key, 64, pszPassword);
-        }
+        goLabel = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "goLabel");
+        gtk_label_set_label(GTK_LABEL(goLabel), szAction);
 
-        extract(
-            _cloakInfo.pszSourceImageFile,
-            _cloakInfo.pszKeystreamFile,
-            _cloakInfo.pszOutputFile,
-            _cloakInfo.quality,
-            _cloakInfo.algo,
-            key,
-            keyLength);
+        goButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "goButton");
+        gtk_widget_set_sensitive(goButton, TRUE);
     }
 
     g_object_unref(dialog);
@@ -298,21 +258,43 @@ static void handleActionSwitchState(GtkWidget * widget, gboolean state, gpointer
     if (state) {
         gtk_widget_set_sensitive(addFileButton, FALSE);
         gtk_widget_set_sensitive(extractFileButton, TRUE);
+        _cloakInfo.action = actionExtract;
     }
     else {
         gtk_widget_set_sensitive(addFileButton, TRUE);
         gtk_widget_set_sensitive(extractFileButton, FALSE);
+        _cloakInfo.action = actionMerge;
     }
 }
 
 static void handleAddFileButtonClick(GtkWidget * widget, gpointer data)
 {
+    GtkFileChooserNative *          openDialog;
 
+    openDialog = gtk_file_chooser_native_new(
+                        "Open a secret file", 
+                        (GtkWindow *)data, 
+                        GTK_FILE_CHOOSER_ACTION_OPEN, 
+                        "_Open",
+                        "_Cancel");
+
+    g_signal_connect(openDialog, "response", G_CALLBACK(handleMergeOpen), NULL);
+    gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
 }
 
 static void handleExtractFileButtonClick(GtkWidget * widget, gpointer data)
 {
-    
+    GtkFileChooserNative *          openDialog;
+
+    openDialog = gtk_file_chooser_native_new(
+                        "Save the secret file", 
+                        (GtkWindow *)data, 
+                        GTK_FILE_CHOOSER_ACTION_SAVE, 
+                        "Save _As",
+                        "_Cancel");
+
+    g_signal_connect(openDialog, "response", G_CALLBACK(handleExtractSave), NULL);
+    gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
 }
 
 static void handleHighQualityToggle(GtkWidget * radio, gpointer data)
@@ -392,35 +374,54 @@ static void handleNoneEncryptionToggle(GtkWidget * radio, gpointer data)
 
 static void handleGoButtonClick(GtkWidget * widget, gpointer data)
 {
-    GtkFileChooserNative *          openDialog;
-    GtkWidget *                     mergeActionRadio;
-    GtkWidget *                     extractActionRadio;
+    GdkPixbuf *                     pixBuf;
+    GtkWidget *                     mainWindow;
+    GtkWidget *                     image;
+    GtkWidget *                     aesPasswordField;
+    char                            szOutputImage[512];
+    const char *                    pszPassword;
+    uint8_t                         key[64];
+    uint32_t                        keyLength = 0U;
 
-    mergeActionRadio = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "mergeActionRadio");
-    extractActionRadio = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "extractActionRadio");
+    if (_cloakInfo.algo == aes256) {
+        aesPasswordField = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "aesPasswordField");
+        pszPassword = gtk_editable_get_text(GTK_EDITABLE(aesPasswordField));
 
-    if (gtk_check_button_get_active(GTK_CHECK_BUTTON(mergeActionRadio))) {
-        openDialog = gtk_file_chooser_native_new(
-                            "Open a secret file", 
-                            (GtkWindow *)data, 
-                            GTK_FILE_CHOOSER_ACTION_OPEN, 
-                            "_Open",
-                            "_Cancel");
-
-        g_signal_connect(openDialog, "response", G_CALLBACK(handleMergeOpen), NULL);
-        gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
+        keyLength = getKey(key, 64, pszPassword);
     }
-    else if (gtk_check_button_get_active(GTK_CHECK_BUTTON(extractActionRadio))) {
-        openDialog = gtk_file_chooser_native_new(
-                            "Save the secret file", 
-                            (GtkWindow *)data, 
-                            GTK_FILE_CHOOSER_ACTION_SAVE, 
-                            "Save _As",
-                            "_Cancel");
 
-        g_signal_connect(openDialog, "response", G_CALLBACK(handleExtractSave), NULL);
-        gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
+    if (_cloakInfo.action == actionMerge) {
+        strcpy(szOutputImage, "cloak_out.");
+        strncat(szOutputImage, getFileExtension(_cloakInfo.pszSourceImageFile), 512);
+
+        merge(
+            _cloakInfo.pszSourceImageFile, 
+            _cloakInfo.pszSourceSecretFile, 
+            _cloakInfo.pszKeystreamFile, 
+            szOutputImage, 
+            _cloakInfo.quality, 
+            _cloakInfo.algo,
+            key,
+            keyLength);
+
+        image = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "image");
+        pixBuf = gdk_pixbuf_new_from_file(szOutputImage, NULL);
+
+        gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixBuf);
     }
+    else {
+        extract(
+            _cloakInfo.pszSourceImageFile,
+            _cloakInfo.pszKeystreamFile,
+            _cloakInfo.pszOutputFile,
+            _cloakInfo.quality,
+            _cloakInfo.algo,
+            key,
+            keyLength);
+    }
+
+    mainWindow = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "mainWindow");
+    gtk_window_close(GTK_WINDOW(mainWindow));
 }
 
 static void handleBrowseButtonClick(GtkWidget * widget, gpointer data)
@@ -527,6 +528,7 @@ static void activate(GtkApplication * app, gpointer user_data)
 
     actionSwitch = (GtkWidget *)gtk_builder_get_object(builder, "actionSwitch");
     g_signal_connect(actionSwitch, "state-set", G_CALLBACK(handleActionSwitchState), NULL);
+    _cloakInfo.action = actionMerge;
 
     addFileButton = (GtkWidget *)gtk_builder_get_object(builder, "addFileButton");
     g_signal_connect(addFileButton, "clicked", G_CALLBACK(handleAddFileButtonClick), NULL);

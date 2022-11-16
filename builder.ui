@@ -83,7 +83,7 @@
                       <property name="column">1</property>
                       <property name="row">0</property>
                     </layout>
-                    <property name="label">Go</property>
+                    <property name="label">Finish</property>
                     <property name="use-underline">TRUE</property>
                     <property name="sensitive">FALSE</property>
                     <property name="halign">GTK_ALIGN_END</property>
