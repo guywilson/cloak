@@ -274,7 +274,7 @@
                           <property name="row">0</property>
                         </layout>
                         <property name="label">Merge</property>
-                        <property name="sensitive">FALSE</property>
+                        <property name="sensitive">TRUE</property>
                       </object>
                     </child>
                     <child>
@@ -283,7 +283,7 @@
                           <property name="column">1</property>
                           <property name="row">0</property>
                         </layout>
-                        <property name="sensitive">FALSE</property>
+                        <property name="sensitive">TRUE</property>
                       </object>
                     </child>
                     <child>
@@ -293,7 +293,7 @@
                           <property name="row">0</property>
                         </layout>
                         <property name="label">Extract</property>
-                        <property name="sensitive">FALSE</property>
+                        <property name="sensitive">TRUE</property>
                       </object>
                     </child>
                   </object>
