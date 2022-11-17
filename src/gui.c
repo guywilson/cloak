@@ -484,14 +484,14 @@ static void activate(GtkApplication * app, gpointer user_data)
     GtkWidget *         addFileButton;
     GtkWidget *         extractFileButton;
 
-    builder = gtk_builder_new_from_resource("/com/guy/cloak/builder.ui");
+    builder = gtk_builder_new_from_resource("/com/guy/cloak/resources/builder.ui");
 
     _cloakInfo.builder = builder;
 
     mainWindow = (GtkWidget *)gtk_builder_get_object(builder, "mainWindow");
     gtk_window_set_application(GTK_WINDOW(mainWindow), app);
 
-    // menuBuilder = gtk_builder_new_from_resource("/com/guy/cloak/menu.ui");
+    // menuBuilder = gtk_builder_new_from_resource("/com/guy/cloak/resources/menu.ui");
     // menuBar = G_MENU_MODEL(gtk_builder_get_object(menuBuilder, "menubar"));
 
     // gtk_application_set_menubar(app, menuBar);
@@ -536,7 +536,7 @@ static void activate(GtkApplication * app, gpointer user_data)
     extractFileButton = (GtkWidget *)gtk_builder_get_object(builder, "extractFileButton");
     g_signal_connect(extractFileButton, "clicked", G_CALLBACK(handleExtractFileButtonClick), NULL);
 
-    pixbuf = gdk_pixbuf_new_from_resource_at_scale("/com/guy/cloak/initialimage.png", 400, 400, TRUE, NULL);
+    pixbuf = gdk_pixbuf_new_from_resource_at_scale("/com/guy/cloak/resources/initialimage.png", 400, 400, TRUE, NULL);
     image = (GtkWidget *)gtk_builder_get_object(builder, "image");
     gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
     gtk_widget_set_size_request(image, 400, 400);

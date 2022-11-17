@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
   <gresource prefix="/com/guy/cloak">
-    <file>builder.ui</file>
-    <!-- <file>menu.ui</file> -->
-    <file>initialimage.png</file>
+    <file>resources/builder.ui</file>
+    <!-- <file>resources/menu.ui</file> -->
+    <file>resources/initialimage.png</file>
   </gresource>
 </gresources>
