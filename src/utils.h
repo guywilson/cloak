@@ -4,7 +4,9 @@
 #ifndef __INCL_UTILS
 #define __INCL_UTILS
 
+int         generateKeystreamFile(const char * pszKeystreamFile, uint32_t numBytes);
 uint32_t    getFileSize(FILE * fptr);
+uint32_t    getFileSizeByName(const char * pszFilename);
 char *      getFileExtension(char * pszFilename);
 void        wipeBuffer(void * b, uint32_t bufferLen);
 void        secureFree(void * b, uint32_t len);

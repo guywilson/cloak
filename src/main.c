@@ -7,9 +7,12 @@
 #include "cloak.h"
 #include "cloak_types.h"
 #include "utils.h"
-#include "gui.h"
 #include "test.h"
 #include "version.h"
+
+#ifdef BUILD_GUI
+#include "gui.h"
+#endif
 
 int _getProgNameStartPos(char * pszProgName)
 {
@@ -52,6 +55,9 @@ void printUsage(char * pszProgName)
 	printf("                    'aes' for AES-256 encryption (prompt for password),\n");
 	printf("                    'xor' for one-time pad encryption (-k is mandatory),\n");
 	printf("                    'none' for no encryption (hide only)\n");
+#ifdef BUILD_GUI
+	printf("             --gui launch the GUI application on startup, all other arguments ignored\n");
+#endif
     printf("             --test=n where n is between 1 and 18 to run the numbered test case\n\n");
 }
 
@@ -72,10 +78,12 @@ int main(int argc, char ** argv)
 	uint32_t		keyLength = 0;
 	boolean			isMerge = False;
 	boolean			isReportSize = False;
-	boolean			isGUI = False;
 	merge_quality	quality = quality_high;
 	encryption_algo	algo = none;
-	
+#ifdef BUILD_GUI
+	boolean			isGUI = False;
+#endif
+
     if (argc > 0) {
         for (i = 1;i < argc;i++) {
             arg = argv[i];
@@ -94,9 +102,11 @@ int main(int argc, char ** argv)
 
                     return test(testNum);
                 }
+#ifdef BUILD_GUI
                 else if (strncmp(arg, "--gui", 5) == 0) {
 					isGUI = True;
                 }
+#endif
                 else if (strncmp(arg, "--algo=", 7) == 0) {
                     pszAlgorithm = strdup(&arg[7]);
 
@@ -162,10 +172,12 @@ int main(int argc, char ** argv)
         }
     }
 
+#ifdef BUILD_GUI
 	if (isGUI) {
 		printf("Starting GUI...\n");
 		return initiateGUI(1, argv);
 	}
+#endif
 
 	if (algo == xor && pszKeystreamFilename == NULL) {
 		printf("For encryption algorithm 'xor', you must specify a key stream file.\n");

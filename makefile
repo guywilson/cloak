@@ -36,7 +36,7 @@ RESOURCEXML=builder.ui
 PRECOMPILE = @ mkdir -p $(BUILD) $(DEP)
 POSTCOMPILE = @ mv -f $(DEP)/$*.Td $(DEP)/$*.d
 
-CFLAGS = -c -O2 -Wall -pedantic $(INCLUDEDIRS)
+CFLAGS = -c -O2 -Wall -pedantic -DBUILD_GUI $(INCLUDEDIRS)
 RESOURCEFLAGS = --target=$(RESOURCETARGET) --sourcedir=. --compiler=$(CC) --generate-source 
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEP)/$*.Td
 
@@ -47,6 +47,7 @@ LINK.o = $(LINKER) $(LIBDIRS) -o $@
 CSRCFILES = $(wildcard $(SOURCE)/*.c)
 OBJFILES := $(patsubst $(SOURCE)/%.c, $(BUILD)/%.o, $(CSRCFILES))
 DEPFILES = $(patsubst $(SOURCE)/%.c, $(DEP)/%.d, $(CSRCFILES))
+RESFILES = $(wildcard $(RESOURCE)/*.*)
 
 all: $(TARGET)
 
@@ -61,7 +62,7 @@ $(BUILD)/%.o: $(SOURCE)/%.c $(DEP)/%.d
 	$(COMPILE.c) $<
 	$(POSTCOMPILE)
 
-$(RESOURCETARGET): $(RESOURCEDEF) $(RESOURCE)/*
+$(RESOURCETARGET): $(RESOURCEDEF) $(RESFILES)
 	$(RESOURCE.c) $<
 
 .PRECIOUS = $(DEP)/%.d

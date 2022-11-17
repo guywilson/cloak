@@ -1,14 +1,20 @@
+#define BUILD_GUI
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <ctype.h>
+
+#ifdef BUILD_GUI
 #include <gtk/gtk.h>
+#endif
 
 #include "cloak.h"
 #include "cloak_types.h"
 #include "utils.h"
 
+#ifdef BUILD_GUI
 #define APPLICATION_ID "com.guy.cloak.cloak"
 
 typedef enum {
@@ -86,12 +92,16 @@ static void onImageLoad()
 static void handleKeystreamOpen(GtkNativeDialog * dialog, int response)
 {
     GFile *         file;
+    GtkWidget *     xorKeystreamField;
 
     if (response == GTK_RESPONSE_ACCEPT) {
         GtkFileChooser * chooser = GTK_FILE_CHOOSER(dialog);
 
         file = gtk_file_chooser_get_file(chooser);
         _cloakInfo.pszKeystreamFile = g_file_get_path(file);
+
+        xorKeystreamField = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "xorKeystreamField");
+        gtk_editable_set_text(GTK_EDITABLE(xorKeystreamField), _cloakInfo.pszKeystreamFile);
     }
 
     g_object_unref(dialog);
@@ -134,6 +144,7 @@ static gboolean handleFileDrop(
     GtkWidget *         image = GTK_WIDGET(data);
     GtkWidget *         goLabel;
     GtkWidget *         goButton;
+    GtkWidget *         xorGenerateButton;
     GdkFileList *       fileList;
     GSList *            list;
     char *              filePath;
@@ -177,6 +188,9 @@ static gboolean handleFileDrop(
                 goButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "goButton");
                 gtk_widget_set_sensitive(goButton, TRUE);
 
+                xorGenerateButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "xorGenerateButton");
+                gtk_widget_set_sensitive(xorGenerateButton, TRUE);
+
                 mode = modeImageDrop;
                 return TRUE;
             }
@@ -202,6 +216,7 @@ static void handleMergeOpen(GtkNativeDialog * dialog, int response)
     GFile *             file;
     GtkWidget *         goLabel;
     GtkWidget *         goButton;
+    GtkWidget *         xorGenerateButton;
     char                szAction[256];
 
     if (response == GTK_RESPONSE_ACCEPT) {
@@ -217,6 +232,9 @@ static void handleMergeOpen(GtkNativeDialog * dialog, int response)
 
         goButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "goButton");
         gtk_widget_set_sensitive(goButton, TRUE);
+
+        xorGenerateButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "xorGenerateButton");
+        gtk_widget_set_sensitive(xorGenerateButton, TRUE);
     }
 
     g_object_unref(dialog);
@@ -242,6 +260,29 @@ static void handleExtractSave(GtkNativeDialog * dialog, int response)
 
         goButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "goButton");
         gtk_widget_set_sensitive(goButton, TRUE);
+    }
+
+    g_object_unref(dialog);
+}
+
+static void handleGenerateSave(GtkNativeDialog * dialog, int response)
+{
+    GtkWidget *         xorKeystreamField;
+    GFile *             file;
+    uint32_t            numBytes;
+
+    if (response == GTK_RESPONSE_ACCEPT) {
+        GtkFileChooser * chooser = GTK_FILE_CHOOSER(dialog);
+
+        file = gtk_file_chooser_get_file(chooser);
+        _cloakInfo.pszKeystreamFile = g_file_get_path(file);
+
+        numBytes = getFileSizeByName(_cloakInfo.pszSourceSecretFile);
+
+        generateKeystreamFile(_cloakInfo.pszKeystreamFile, numBytes);
+
+        xorKeystreamField = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "xorKeystreamField");
+        gtk_editable_set_text(GTK_EDITABLE(xorKeystreamField), _cloakInfo.pszKeystreamFile);
     }
 
     g_object_unref(dialog);
@@ -284,17 +325,17 @@ static void handleAddFileButtonClick(GtkWidget * widget, gpointer data)
 
 static void handleExtractFileButtonClick(GtkWidget * widget, gpointer data)
 {
-    GtkFileChooserNative *          openDialog;
+    GtkFileChooserNative *          saveDialog;
 
-    openDialog = gtk_file_chooser_native_new(
+    saveDialog = gtk_file_chooser_native_new(
                         "Save the secret file", 
                         (GtkWindow *)data, 
                         GTK_FILE_CHOOSER_ACTION_SAVE, 
                         "Save _As",
                         "_Cancel");
 
-    g_signal_connect(openDialog, "response", G_CALLBACK(handleExtractSave), NULL);
-    gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
+    g_signal_connect(saveDialog, "response", G_CALLBACK(handleExtractSave), NULL);
+    gtk_native_dialog_show(GTK_NATIVE_DIALOG(saveDialog));
 }
 
 static void handleHighQualityToggle(GtkWidget * radio, gpointer data)
@@ -328,6 +369,8 @@ static void handleAesEncryptionToggle(GtkWidget * radio, gpointer data)
     GtkWidget *     xorBrowseButton;
 
     if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
+        _cloakInfo.algo = aes256;
+
         aesPasswordField = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "aesPasswordField");
         xorKeystreamFileField = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "xorKeystreamField");
         xorBrowseButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "xorBrowseButton");
@@ -345,6 +388,8 @@ static void handleXorEncryptionToggle(GtkWidget * radio, gpointer data)
     GtkWidget *     xorBrowseButton;
 
     if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
+        _cloakInfo.algo = xor;
+        
         aesPasswordField = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "aesPasswordField");
         xorKeystreamFileField = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "xorKeystreamField");
         xorBrowseButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "xorBrowseButton");
@@ -362,6 +407,8 @@ static void handleNoneEncryptionToggle(GtkWidget * radio, gpointer data)
     GtkWidget *     xorBrowseButton;
 
     if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
+        _cloakInfo.algo = none;
+        
         aesPasswordField = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "aesPasswordField");
         xorKeystreamFileField = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "xorKeystreamField");
         xorBrowseButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "xorBrowseButton");
@@ -439,6 +486,21 @@ static void handleBrowseButtonClick(GtkWidget * widget, gpointer data)
     gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
 }
 
+static void handleGenerateButtonClick(GtkWidget * widget, gpointer data)
+{
+    GtkFileChooserNative *          saveDialog;
+
+    saveDialog = gtk_file_chooser_native_new(
+                        "Save the OTP file", 
+                        (GtkWindow *)data, 
+                        GTK_FILE_CHOOSER_ACTION_SAVE, 
+                        "Save _As",
+                        "_Cancel");
+
+    g_signal_connect(saveDialog, "response", G_CALLBACK(handleGenerateSave), NULL);
+    gtk_native_dialog_show(GTK_NATIVE_DIALOG(saveDialog));
+}
+
 static void handleOpenButtonClick(GtkWidget * widget, gpointer data)
 {
     GtkFileChooserNative *          openDialog;
@@ -483,6 +545,7 @@ static void activate(GtkApplication * app, gpointer user_data)
     GtkWidget *         actionSwitch;
     GtkWidget *         addFileButton;
     GtkWidget *         extractFileButton;
+    GtkWidget *         xorGenerateButton;
 
     builder = gtk_builder_new_from_resource("/com/guy/cloak/resources/builder.ui");
 
@@ -536,6 +599,9 @@ static void activate(GtkApplication * app, gpointer user_data)
     extractFileButton = (GtkWidget *)gtk_builder_get_object(builder, "extractFileButton");
     g_signal_connect(extractFileButton, "clicked", G_CALLBACK(handleExtractFileButtonClick), NULL);
 
+    xorGenerateButton = (GtkWidget *)gtk_builder_get_object(builder, "xorGenerateButton");
+    g_signal_connect(xorGenerateButton, "clicked", G_CALLBACK(handleGenerateButtonClick), NULL);
+
     pixbuf = gdk_pixbuf_new_from_resource_at_scale("/com/guy/cloak/resources/initialimage.png", 400, 400, TRUE, NULL);
     image = (GtkWidget *)gtk_builder_get_object(builder, "image");
     gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
@@ -565,3 +631,5 @@ int initiateGUI(int argc, char ** argv)
 
 	return status;
 }
+
+#endif

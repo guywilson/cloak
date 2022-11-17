@@ -35,6 +35,39 @@ static HMEM _handlePool[HMEM_POOL_SIZE];
 static int  _currentHandle = 0;
 #endif
 
+int generateKeystreamFile(const char * pszKeystreamFile, uint32_t numBytes)
+{
+    uint32_t    byteCounter;
+    FILE *      fptrRand;
+    FILE *      fptrOutput;
+
+    fptrRand = fopen("/dev/urandom", "rb");
+
+    if (fptrRand == NULL) {
+        fprintf(stderr, "FATAL: Failed to open random device\n\n");
+        return(-1);
+    }
+
+    fptrOutput = fopen(pszKeystreamFile, "wb");
+
+    if (fptrOutput == NULL) {
+        fprintf(stderr, "FATAL: Failed to open output file '%s'\n\n", pszKeystreamFile);
+        return(-1);
+    }
+
+    byteCounter = 0;
+
+    while (byteCounter < numBytes) {
+        fputc(fgetc(fptrRand), fptrOutput);
+        byteCounter++;
+    }
+
+    fclose(fptrRand);
+    fclose(fptrOutput);
+
+    return 0;
+}
+
 uint32_t getFileSize(FILE * fptr)
 {
 	uint32_t                size;
@@ -48,6 +81,24 @@ uint32_t getFileSize(FILE * fptr)
 	size = (uint32_t)ftell(fptr);
 
 	fseek(fptr, currentPos, SEEK_SET);
+
+	return size;
+}
+
+uint32_t getFileSizeByName(const char * pszFilename)
+{
+    FILE *                  fptr;
+	uint32_t                size;
+
+    fptr = fopen(pszFilename, "rb");
+
+    if (fptr == NULL) {
+        fprintf(stderr, "Failed to open file %s for reading file size", pszFilename);
+    }
+
+    size = getFileSize(fptr);
+
+    fclose(fptr);
 
 	return size;
 }
