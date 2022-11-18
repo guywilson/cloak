@@ -290,18 +290,22 @@ static void handleActionSwitchState(GtkWidget * widget, gboolean state, gpointer
 {
     GtkWidget *         addFileButton;
     GtkWidget *         extractFileButton;
+    GtkWidget *         goButton;
 
-    addFileButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "addFileButton");
+    addFileButton =     (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "addFileButton");
     extractFileButton = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "extractFileButton");
+    goButton =          (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "goButton");
 
     if (state) {
         gtk_widget_set_sensitive(addFileButton, FALSE);
         gtk_widget_set_sensitive(extractFileButton, TRUE);
+        gtk_button_set_label(GTK_BUTTON(goButton), "Extract");
         _cloakInfo.action = actionExtract;
     }
     else {
         gtk_widget_set_sensitive(addFileButton, TRUE);
         gtk_widget_set_sensitive(extractFileButton, FALSE);
+        gtk_button_set_label(GTK_BUTTON(goButton), "Merge");
         _cloakInfo.action = actionMerge;
     }
 }
@@ -420,7 +424,6 @@ static void handleNoneEncryptionToggle(GtkWidget * radio, gpointer data)
 static void handleGoButtonClick(GtkWidget * widget, gpointer data)
 {
     GdkPixbuf *                     pixBuf;
-    GtkWidget *                     mainWindow;
     GtkWidget *                     image;
     GtkWidget *                     aesPasswordField;
     char                            szOutputImage[512];
@@ -464,6 +467,11 @@ static void handleGoButtonClick(GtkWidget * widget, gpointer data)
             key,
             keyLength);
     }
+}
+
+static void handleCloseButtonClick(GtkWidget * widget, gpointer data)
+{
+    GtkWidget *                     mainWindow;
 
     mainWindow = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "mainWindow");
     gtk_window_close(GTK_WINDOW(mainWindow));
@@ -533,6 +541,7 @@ static void activate(GtkApplication * app, gpointer user_data)
     GtkWidget *         openButton;
     GtkWidget *         image;
     GtkWidget *         goButton;
+    GtkWidget *         closeButton;
     GtkWidget *         aesEncryptionRadio;
     GtkWidget *         xorEncryptionRadio;
     GtkWidget *         noneEncryptionRadio;
@@ -563,6 +572,9 @@ static void activate(GtkApplication * app, gpointer user_data)
 
     goButton = (GtkWidget *)gtk_builder_get_object(builder, "goButton");
     g_signal_connect(goButton, "clicked", G_CALLBACK(handleGoButtonClick), NULL);
+
+    closeButton = (GtkWidget *)gtk_builder_get_object(builder, "closeButton");
+    g_signal_connect(closeButton, "clicked", G_CALLBACK(handleCloseButtonClick), NULL);
 
     xorBrowseButton = (GtkWidget *)gtk_builder_get_object(builder, "xorBrowseButton");
     g_signal_connect(xorBrowseButton, "clicked", G_CALLBACK(handleBrowseButtonClick), NULL);

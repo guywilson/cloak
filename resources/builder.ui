@@ -72,21 +72,38 @@
                     <layout>
                       <property name="column">0</property>
                       <property name="row">0</property>
+                      <property name="column-span">4</property>
                     </layout>
                     <property name="label">Action</property>
+                    <property name="max-width-chars">80</property>
+                    <property name="ellipsize">PANGO_ELLIPSIZE_MIDDLE</property>
                     <property name="halign">GTK_ALIGN_START</property>
                   </object>
                 </child>
                 <child>
-                  <object id="goButton" class="GtkButton">
+                  <object id="goButtonBox" class="GtkBox">
                     <layout>
-                      <property name="column">1</property>
+                      <property name="column">4</property>
                       <property name="row">0</property>
                     </layout>
-                    <property name="label">Finish</property>
-                    <property name="use-underline">TRUE</property>
-                    <property name="sensitive">FALSE</property>
+                    <property name="orientation">horizontal</property>
+                    <property name="homogeneous">TRUE</property>
+                    <property name="spacing">8</property>
                     <property name="halign">GTK_ALIGN_END</property>
+                    <child>
+                      <object id="goButton" class="GtkButton">
+                        <property name="label">Merge</property>
+                        <property name="use-underline">TRUE</property>
+                        <property name="sensitive">FALSE</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object id="closeButton" class="GtkButton">
+                        <property name="label">Clos_e</property>
+                        <property name="use-underline">TRUE</property>
+                        <property name="sensitive">TRUE</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
