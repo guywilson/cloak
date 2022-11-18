@@ -134,7 +134,6 @@
                     <property name="width-request">100</property>
                     <property name="height-request">16</property>
                     <property name="placeholder-text">password</property>
-                    <property name="max-length">255</property>
                     <property name="sensitive">FALSE</property>
                   </object>
                 </child>
