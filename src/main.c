@@ -55,8 +55,9 @@ void printUsage(char * pszProgName)
 	printf("                    'aes' for AES-256 encryption (prompt for password),\n");
 	printf("                    'xor' for one-time pad encryption (-k is mandatory),\n");
 	printf("                    'none' for no encryption (hide only)\n");
+	printf("             --generate-otp save OTP key to file specified with -k\n");
 #ifdef BUILD_GUI
-	printf("             --gui launch the GUI application on startup, all other arguments ignored\n");
+	printf("             --gui launch app on startup, all other arguments ignored\n");
 #endif
     printf("             --test=n where n is between 1 and 18 to run the numbered test case\n\n");
 }
@@ -76,8 +77,10 @@ int main(int argc, char ** argv)
 	const uint32_t	keyBufferLen = 64U;
 	uint8_t *		key = NULL;
 	uint32_t		keyLength = 0;
+	uint32_t		otpLength = 0;
 	boolean			isMerge = False;
 	boolean			isReportSize = False;
+	boolean			generateOTP = False;
 	merge_quality	quality = quality_high;
 	encryption_algo	algo = none;
 #ifdef BUILD_GUI
@@ -152,6 +155,9 @@ int main(int argc, char ** argv)
 
 					free(pszQuality);
                 }
+                else if (strncmp(arg, "--generate-otp", 14) == 0) {
+					generateOTP = True;
+                }
                 else if (strncmp(arg, "-f", 2) == 0) {
                     pszInputFilename = strdup(argv[i + 1]);
                 }
@@ -179,15 +185,23 @@ int main(int argc, char ** argv)
 	}
 #endif
 
-	if (algo == xor && pszKeystreamFilename == NULL) {
-		printf("For encryption algorithm 'xor', you must specify a key stream file.\n");
-		exit(-1);
-	}
-
 	pszSourceFilename = strdup(argv[argc - 1]);
 	
 	if (pszInputFilename != NULL) {
 		isMerge = True;
+	}
+
+	if (algo == xor) {
+		if (pszKeystreamFilename != NULL) {
+			if (generateOTP) {
+				otpLength = getFileSizeByName(pszInputFilename);
+				generateKeystreamFile(pszKeystreamFilename, otpLength);
+			}
+		}
+		else {
+			printf("For encryption algorithm 'xor', you must specify a key stream file.\n");
+			exit(-1);
+		}
 	}
 	
     pszExtension = getFileExtension(pszSourceFilename);
