@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ -z "$1" ]; then
+    make
+else
+    if [ "$1" ='' "--gui" ]; then
+        make GUI=1
+    else
+        echo "Unknown option: "$1
+    fi
+fi

@@ -23,25 +23,35 @@ TARGET = cloak
 VBUILD = vbuild
 CC = gcc
 LINKER = gcc
-RESOURCEC=glib-compile-resources
 
-INCLUDEDIRS=-I/opt/homebrew/include `pkg-config --cflags gtk4`
 LIBDIRS=-L/opt/homebrew/lib
-LIBRARIES = -lgcrypt -lpng `pkg-config --libs gtk4`
 
-RESOURCETARGET=$(SOURCE)/cloak-resources.c
+ifdef GUI
+GTKINCLUDES=`pkg-config --cflags gtk4`
+GTKLIBRARIES=`pkg-config --libs gtk4`
+
+DEFINES=-DBUILD_GUI
+
+RESOURCEC=glib-compile-resources
+RESTARGET=cloak-resources
+RESOURCESRC=$(SOURCE)/$(RESTARGET).c
+RESOURCEOBJ=$(BUILD)/$(RESTARGET).o
 RESOURCEDEF=cloak.gresource.xml
 RESOURCEXML=builder.ui
+RESOURCEFLAGS = --target=$(RESOURCESRC) --sourcedir=. --compiler=$(CC) --generate-source 
+RESOURCE.c = $(RESOURCEC) $(RESOURCEFLAGS)
+endif
+
+INCLUDEDIRS=-I/opt/homebrew/include $(GTKINCLUDES)
+LIBRARIES = -lgcrypt -lpng $(GTKLIBRARIES)
 
 PRECOMPILE = @ mkdir -p $(BUILD) $(DEP)
 POSTCOMPILE = @ mv -f $(DEP)/$*.Td $(DEP)/$*.d
 
-CFLAGS = -c -O2 -Wall -pedantic -DBUILD_GUI $(INCLUDEDIRS)
-RESOURCEFLAGS = --target=$(RESOURCETARGET) --sourcedir=. --compiler=$(CC) --generate-source 
+CFLAGS = -c -O2 -Wall -pedantic $(DEFINES) $(INCLUDEDIRS)
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEP)/$*.Td
 
 COMPILE.c = $(CC) $(CFLAGS) $(DEPFLAGS) -o $@
-RESOURCE.c = $(RESOURCEC) $(RESOURCEFLAGS)
 LINK.o = $(LINKER) $(LIBDIRS) -o $@
 
 CSRCFILES = $(wildcard $(SOURCE)/*.c)
@@ -53,8 +63,9 @@ all: $(TARGET)
 
 # Compile C/C++ source files
 #
-$(TARGET): $(OBJFILES)
+$(TARGET): $(OBJFILES) $(RESOURCEOBJ)
 	$(LINK.o) $^ $(LIBRARIES)
+	rm -f $(RESOURCESRC)
 
 $(BUILD)/%.o: $(SOURCE)/%.c
 $(BUILD)/%.o: $(SOURCE)/%.c $(DEP)/%.d
@@ -62,7 +73,7 @@ $(BUILD)/%.o: $(SOURCE)/%.c $(DEP)/%.d
 	$(COMPILE.c) $<
 	$(POSTCOMPILE)
 
-$(RESOURCETARGET): $(RESOURCEDEF) $(RESFILES)
+$(RESOURCESRC): $(RESOURCEDEF) $(RESFILES)
 	$(RESOURCE.c) $<
 
 .PRECIOUS = $(DEP)/%.d
