@@ -33,11 +33,13 @@ https://www.random.org/
 
 Building Cloak
 --------------
-Cloak is written in C and I have provided a makefile for Unix/Linux using the gcc compiler (tested on Mac OS). Cloak depends on the 3rd party libraries libpng (http://libpng.org) and libgcrypt (https://www.gnupg.org/software/libgcrypt/index.html) (for the encryption and hashing algorithms, part of GPG).
+Cloak is written in C and I have provided a makefile for Unix/Linux using the gcc compiler (tested on Mac OS). Cloak depends on the 3rd party libraries libpng (http://libpng.org), libgcrypt (https://www.gnupg.org/software/libgcrypt/index.html) (for the encryption and hashing algorithms, part of GPG), and Gtk4 (for the GUI if built).
 
-Build cloak using the system make utility, e.g. on Linux/macOs
+Build cloak using the supplied build script, e.g. on Linux/macOs
 
-    make
+    buildit [to build the command-line only version]
+    
+    buildit --gui [to build the GUI version]
 
 ![flowers_out.png](flowers_out.png)
 
@@ -58,7 +60,13 @@ Type cloak --help to get help on the command line parameters:
                         'aes' for AES-256 encryption (prompt for password),
                         'xor' for one-time pad encryption (-k is mandatory),
                         'none' for no encryption (hide only)
+                 --generate-otp save OTP key to file specified with -k
+                 --gui launch app on startup, all other arguments ignored
                  --test=n where n is between 1 and 18 to run the numbered test case
+
+cloak --gui starts the Gtk GUI
+
+<img width="1014" alt="image" src="https://user-images.githubusercontent.com/22706892/202805923-3c175ef0-c19c-401f-845d-b65d4e1e976c.png">
 
 I have included a sample PNG file with this distribution - flowers_out.png which has the LICENSE encoded within it, the password used to encrypt the file is 'password', you should use a strong password, see the tips above.
 
