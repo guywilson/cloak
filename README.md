@@ -6,7 +6,7 @@ Hide and extract an encrypted file within an RGB (24-bit) bitmap or PNG image.
 
 The idea is simple, a 24-bit colour bitmap or PNG image uses 3 bytes for each pixel in the image, one each for Red, Green and Blue, so each colour channel is represented by a value between 0 - 255. If we encode a file in the least significant bits (LSBs) of the image data, there will be no visible difference in the image when displayed. At an encoding depth of 1-bit per byte, we need 8 bytes of image data to encode 1 byte of our file.
 
-Cloak can encrypt your 'secret' data file using either the AES-256 (Rijndael) cipher (in CBC mode) or XOR encryption prior to encoding it in your chosen image. With AES encryption, you will be prompted to enter a password (max 256 chars), the SHA-256 hash of which is used as the key for the pass through AES. With XOR encryption, you must supply a keystream file using the -k option.
+Cloak can encrypt your 'secret' data file using either the AES-256 (Rijndael) cipher (in CBC mode) or XOR encryption prior to encoding it in your chosen image. With AES encryption, you will be prompted to enter a password (max 256 chars), the SHA-256 hash of which is used as the key for the pass through AES. With XOR encryption, you must either supply a keystream file using the -k option, or specify the --generate-otp option to create the random keystream file specified with -k. The OTP generate function uses the /dev/urandom device on *nix systems. 
 
 With XOR encryption, the advantage of this mechanism is you can employ a one-time-pad scheme, which providing you stick to the rules for a one-time-pad encryption scheme, is mathematically proven to be unbreakable.
 
@@ -68,7 +68,7 @@ cloak --gui starts the Gtk GUI
 
 <img width="1014" alt="image" src="https://user-images.githubusercontent.com/22706892/202805923-3c175ef0-c19c-401f-845d-b65d4e1e976c.png">
 
-I have included a sample PNG file with this distribution - flowers_out.png which has the LICENSE encoded within it, the password used to encrypt the file is 'password', you should use a strong password, see the tips above.
+I have included a sample PNG file with this distribution - flowers_out.png which has the LICENSE encoded within it, the password used to encrypt the file is 'password', however you should use a strong password in real-world applications, see the tips on password strength above.
 
 For example, to 'cloak' a file within flowers.png I used the following command:
 
