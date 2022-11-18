@@ -41,7 +41,7 @@ int generateKeystreamFile(const char * pszKeystreamFile, uint32_t numBytes)
     FILE *      fptrRand;
     FILE *      fptrOutput;
 
-    fptrRand = fopen("/dev/urandom", "rb");
+    fptrRand = fopen("/dev/random", "rb");
 
     if (fptrRand == NULL) {
         fprintf(stderr, "FATAL: Failed to open random device\n\n");
