@@ -66,7 +66,7 @@ Type cloak --help to get help on the command line parameters:
 
 cloak --gui starts the Gtk GUI
 
-<img width="1014" alt="image" src="https://user-images.githubusercontent.com/22706892/202805923-3c175ef0-c19c-401f-845d-b65d4e1e976c.png">
+<img width="953" alt="image" src="https://user-images.githubusercontent.com/22706892/202853917-1d8933df-c81e-4449-aa5f-59bf4edd9803.png">
 
 I have included a sample PNG file with this distribution - flowers_out.png which has the LICENSE encoded within it, the password used to encrypt the file is 'password', however you should use a strong password in real-world applications, see the tips on password strength above.
 
