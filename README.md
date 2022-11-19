@@ -63,8 +63,7 @@ Type cloak --help to get help on the command line parameters:
                  --test=n where n is between 1 and 18 to run the numbered test case
 
 cloak --gui starts the Gtk GUI
-
-<img width="953" alt="image" src="https://user-images.githubusercontent.com/22706892/202853917-1d8933df-c81e-4449-aa5f-59bf4edd9803.png">
+<img width="953" alt="image" src="https://user-images.githubusercontent.com/22706892/202858251-5d403d00-11db-4263-9418-e06d8d628bec.png">
 
 ![flowers_out.png](flowers_out.png)
 
