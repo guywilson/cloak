@@ -102,6 +102,7 @@ static void handleKeystreamOpen(GtkNativeDialog * dialog, int response)
         gtk_editable_set_text(GTK_EDITABLE(xorKeystreamField), _cloakInfo.pszKeystreamFile);
     }
 
+    gtk_native_dialog_destroy(dialog);
     g_object_unref(dialog);
 }
 
@@ -122,11 +123,14 @@ static void handleImageOpen(GtkNativeDialog * dialog, int response)
 
         gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixBuf);
 
+        g_object_unref(pixBuf);
+
         onImageLoad();
 
         refreshCapacity();
     }
 
+    gtk_native_dialog_destroy(dialog);
     g_object_unref(dialog);
 }
 
@@ -198,6 +202,8 @@ static gboolean handleFileDrop(
 
         gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixBuf);
 
+        g_object_unref(pixBuf);
+
         onImageLoad();
 
         refreshCapacity();
@@ -235,6 +241,7 @@ static void handleMergeOpen(GtkNativeDialog * dialog, int response)
         gtk_widget_set_sensitive(xorGenerateButton, TRUE);
     }
 
+    gtk_native_dialog_destroy(dialog);
     g_object_unref(dialog);
 }
 
@@ -260,6 +267,7 @@ static void handleExtractSave(GtkNativeDialog * dialog, int response)
         gtk_widget_set_sensitive(goButton, TRUE);
     }
 
+    gtk_native_dialog_destroy(dialog);
     g_object_unref(dialog);
 }
 
@@ -283,6 +291,7 @@ static void handleGenerateSave(GtkNativeDialog * dialog, int response)
         gtk_editable_set_text(GTK_EDITABLE(xorKeystreamField), _cloakInfo.pszKeystreamFile);
     }
 
+    gtk_native_dialog_destroy(dialog);
     g_object_unref(dialog);
 }
 
@@ -456,6 +465,8 @@ static void handleGoButtonClick(GtkWidget * widget, gpointer data)
         pixBuf = gdk_pixbuf_new_from_file(szOutputImage, NULL);
 
         gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixBuf);
+
+        g_object_unref(pixBuf);
     }
     else {
         extract(
@@ -475,6 +486,7 @@ static void handleCloseButtonClick(GtkWidget * widget, gpointer data)
 
     mainWindow = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "mainWindow");
     gtk_window_close(GTK_WINDOW(mainWindow));
+    gtk_window_destroy(GTK_WINDOW(mainWindow));
 }
 
 static void handleBrowseButtonClick(GtkWidget * widget, gpointer data)
