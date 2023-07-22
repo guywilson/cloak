@@ -3,12 +3,10 @@
 #define __BDATE__      "<BUILD_DATE>"
 #define __BVERSION__   "<BUILD_VERSION>"
 
-const char * getVersion()
-{
+const char * getVersion(void) {
     return __BVERSION__;
 }
 
-const char * getBuildDate()
-{
+const char * getBuildDate(void) {
     return __BDATE__;
 }

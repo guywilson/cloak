@@ -1,4 +1,24 @@
-#include <stdio.h>
+/******************************************************************************
+Copyright (c) 2023 Guy Wilson
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+******************************************************************************/#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -31,8 +51,7 @@ struct _secret_rw_handle {
 	gcry_cipher_hd_t	cipherHandle;
 };
 
-typedef struct __attribute__((__packed__))
-{
+typedef struct __attribute__((__packed__)) {
     uint32_t        fileLength;
     uint32_t        dataFrameLength;
 	uint32_t		encryptionBufferLength;
@@ -41,8 +60,7 @@ typedef struct __attribute__((__packed__))
 CLOAK_HEADER;
 
 
-HSECRW rdr_open(const char * pszFilename, encryption_algo a)
-{
+HSECRW rdr_open(const char * pszFilename, encryption_algo a) {
 	HSECRW			hsec;
 	CLOAK_HEADER	header;
 	int				index = 0;
@@ -221,8 +239,7 @@ HSECRW rdr_open(const char * pszFilename, encryption_algo a)
 	return hsec;
 }
 
-int rdr_encrypt_aes256(HSECRW hsec, uint8_t * key, uint32_t keyLength)
-{
+int rdr_encrypt_aes256(HSECRW hsec, uint8_t * key, uint32_t keyLength) {
 	int			err;
 	uint32_t	blklen;
 
@@ -259,8 +276,7 @@ int rdr_encrypt_aes256(HSECRW hsec, uint8_t * key, uint32_t keyLength)
 	return 0;
 }
 
-int rdr_encrypt_xor(HSECRW hsec, const char * pszKeystreamFilename)
-{
+int rdr_encrypt_xor(HSECRW hsec, const char * pszKeystreamFilename) {
 	uint32_t		keyLength;
 	uint32_t		i;
 	int				ch;
@@ -297,8 +313,7 @@ int rdr_encrypt_xor(HSECRW hsec, const char * pszKeystreamFilename)
 	return 0;
 }
 
-void rdr_close(HSECRW hsec)
-{
+void rdr_close(HSECRW hsec) {
 	if (hsec->fptrSecret != NULL) {
 		fclose(hsec->fptrSecret);
 	}
@@ -307,28 +322,23 @@ void rdr_close(HSECRW hsec)
 	dbg_free(0x0002, hsec, __FILE__, __LINE__);
 }
 
-uint32_t rdr_get_block_size(HSECRW hsec)
-{
+uint32_t rdr_get_block_size(HSECRW hsec) {
 	return hsec->blockSize;
 }
 
-uint32_t rdr_get_data_length(HSECRW hsec)
-{
+uint32_t rdr_get_data_length(HSECRW hsec) {
 	return hsec->dataFrameLength;
 }
 
-uint32_t rdr_get_file_length(HSECRW hsec)
-{
+uint32_t rdr_get_file_length(HSECRW hsec) {
 	return hsec->fileLength;
 }
 
-boolean rdr_has_more_blocks(HSECRW hsec)
-{
+boolean rdr_has_more_blocks(HSECRW hsec) {
 	return ((hsec->counter < hsec->dataFrameLength) ? True : False);
 }
 
-uint32_t rdr_read_encrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLength)
-{
+uint32_t rdr_read_encrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLength) {
 	uint32_t			bytesRead;
 
 	if (bufferLength < hsec->blockSize) {
@@ -347,8 +357,7 @@ uint32_t rdr_read_encrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t buffer
 	return bytesRead;
 }
 
-HSECRW wrtr_open(const char * pszFilename, encryption_algo a)
-{
+HSECRW wrtr_open(const char * pszFilename, encryption_algo a) {
 	HSECRW			hsec;
 
 	hsec = (HSECRW)malloc(sizeof(struct _secret_rw_handle));
@@ -375,8 +384,7 @@ HSECRW wrtr_open(const char * pszFilename, encryption_algo a)
 	return hsec;
 }
 
-void wrtr_close(HSECRW hsec)
-{
+void wrtr_close(HSECRW hsec) {
 	if (hsec->fptrSecret != NULL) {
 		fclose(hsec->fptrSecret);
 	}
@@ -384,18 +392,15 @@ void wrtr_close(HSECRW hsec)
 	free(hsec);
 }
 
-uint32_t wrtr_get_block_size(HSECRW hsec)
-{
+uint32_t wrtr_get_block_size(HSECRW hsec) {
 	return hsec->blockSize;
 }
 
-boolean wrtr_has_more_blocks(HSECRW hsec)
-{
+boolean wrtr_has_more_blocks(HSECRW hsec) {
 	return (hsec->counter < hsec->encryptionBufferLength) ? True : False;
 }
 
-int wrtr_set_keystream_file(HSECRW hsec, const char * pszFilename)
-{
+int wrtr_set_keystream_file(HSECRW hsec, const char * pszFilename) {
 	hsec->fptrKey = fopen(pszFilename, "rb");
 
 	if (hsec->fptrKey == NULL) {
@@ -406,8 +411,7 @@ int wrtr_set_keystream_file(HSECRW hsec, const char * pszFilename)
 	return 0;
 }
 
-int wrtr_set_key_aes(HSECRW hsec, uint8_t * key, uint32_t keyLength)
-{
+int wrtr_set_key_aes(HSECRW hsec, uint8_t * key, uint32_t keyLength) {
 	if (hsec->algo == aes256) {
 		int			err;
 
@@ -440,8 +444,7 @@ int wrtr_set_key_aes(HSECRW hsec, uint8_t * key, uint32_t keyLength)
 	return 0;
 }
 
-int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLength)
-{
+int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLength) {
 	CLOAK_HEADER		header;
 	int					i;
 	int					err;
@@ -558,4 +561,3 @@ int wrtr_write_decrypted_block(HSECRW hsec, uint8_t * buffer, uint32_t bufferLen
 
 	return 0;
 }
-

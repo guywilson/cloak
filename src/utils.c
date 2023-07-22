@@ -1,4 +1,24 @@
-#include <stdio.h>
+/******************************************************************************
+Copyright (c) 2023 Guy Wilson
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+******************************************************************************/#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -12,6 +32,7 @@
 #endif
 
 #include "random_block.h"
+#include "utils.h"
 
 #define HMEM_POOL_SIZE                  16
 
@@ -20,8 +41,7 @@
 */
 
 #ifdef __DEBUG_MEM
-typedef struct
-{
+typedef struct {
     uint16_t        id;
     uint32_t        size;
     uint64_t        baseAddress;
@@ -35,8 +55,7 @@ static HMEM _handlePool[HMEM_POOL_SIZE];
 static int  _currentHandle = 0;
 #endif
 
-int generateKeystreamFile(const char * pszKeystreamFile, uint32_t numBytes)
-{
+int generateKeystreamFile(const char * pszKeystreamFile, uint32_t numBytes) {
     uint32_t    byteCounter;
     FILE *      fptrRand;
     FILE *      fptrOutput;
@@ -68,8 +87,7 @@ int generateKeystreamFile(const char * pszKeystreamFile, uint32_t numBytes)
     return 0;
 }
 
-uint32_t getFileSize(FILE * fptr)
-{
+uint32_t getFileSize(FILE * fptr) {
 	uint32_t                size;
 	long                    currentPos;
 
@@ -85,8 +103,7 @@ uint32_t getFileSize(FILE * fptr)
 	return size;
 }
 
-uint32_t getFileSizeByName(const char * pszFilename)
-{
+uint32_t getFileSizeByName(const char * pszFilename) {
     FILE *                  fptr;
 	uint32_t                size;
 
@@ -103,8 +120,7 @@ uint32_t getFileSizeByName(const char * pszFilename)
 	return size;
 }
 
-char * getFileExtension(char * pszFilename)
-{
+char * getFileExtension(char * pszFilename) {
 	char *			pszExt = NULL;
 	int				i;
 	
@@ -122,8 +138,7 @@ char * getFileExtension(char * pszFilename)
 	return pszExt;		
 }
 
-void hexDump(void * buffer, uint32_t bufferLen)
-{
+void hexDump(void * buffer, uint32_t bufferLen) {
     int         i;
     int         j = 0;
     uint8_t *   buf;
@@ -158,8 +173,7 @@ void hexDump(void * buffer, uint32_t bufferLen)
     printf("  |%s|\n", szASCIIBuf);
 }
 
-int __getch()
-{
+int __getch(void) {
 	int		ch;
 
 #ifndef _WIN32
@@ -186,8 +200,7 @@ int __getch()
     return ch;
 }
 
-void wipeBuffer(void * b, uint32_t bufferLen)
-{
+void wipeBuffer(void * b, uint32_t bufferLen) {
     uint32_t        c;
     uint32_t        i = 0;
     uint8_t *       buffer;
@@ -211,14 +224,12 @@ void wipeBuffer(void * b, uint32_t bufferLen)
     memset(b, 0x00, bufferLen);
 }
 
-void secureFree(void * b, uint32_t len)
-{
+void secureFree(void * b, uint32_t len) {
     wipeBuffer(b, len);
     free(b);
 }
 
-void * dbg_malloc(uint16_t id, size_t numBytes, const char * pszFile, const int line)
-{
+void * dbg_malloc(uint16_t id, size_t numBytes, const char * pszFile, const int line) {
     void *      buffer;
 
     buffer = malloc(numBytes);
@@ -250,8 +261,7 @@ void * dbg_malloc(uint16_t id, size_t numBytes, const char * pszFile, const int 
     return buffer;
 }
 
-void dbg_free(uint16_t id, void * buffer, const char * pszFile, const int line)
-{
+void dbg_free(uint16_t id, void * buffer, const char * pszFile, const int line) {
 #ifdef __DEBUG_MEM
     uint64_t        address;
     int             i;
@@ -279,8 +289,7 @@ void dbg_free(uint16_t id, void * buffer, const char * pszFile, const int line)
     free(buffer);
 }
 
-void xorBuffer(uint8_t * target, uint8_t * source, size_t length)
-{
+void xorBuffer(uint8_t * target, uint8_t * source, size_t length) {
     uint32_t        i;
 
     for (i = 0;i < length;i++) {

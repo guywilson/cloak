@@ -1,4 +1,24 @@
-#include <stdio.h>
+/******************************************************************************
+Copyright (c) 2023 Guy Wilson
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+******************************************************************************/#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -45,8 +65,7 @@ CLOAK_INFO;
 static CLOAK_INFO       _cloakInfo;
 
 
-static void refreshCapacity()
-{
+static void refreshCapacity() {
     GtkWidget *     capacityLabel;
     uint32_t        imageCapacity;
     char            capacityText[64];
@@ -59,8 +78,7 @@ static void refreshCapacity()
     gtk_label_set_label(GTK_LABEL(capacityLabel), capacityText);
 }
 
-static void onImageLoad()
-{
+static void onImageLoad() {
     static const char * fieldsToEnable[] = {
         "aesEncryptionRadio",
         "aesPasswordField",
@@ -87,8 +105,7 @@ static void onImageLoad()
     }
 }
 
-static void handleKeystreamOpen(GtkNativeDialog * dialog, int response)
-{
+static void handleKeystreamOpen(GtkNativeDialog * dialog, int response) {
     GFile *         file;
     GtkWidget *     xorKeystreamField;
 
@@ -106,8 +123,7 @@ static void handleKeystreamOpen(GtkNativeDialog * dialog, int response)
     g_object_unref(dialog);
 }
 
-static void handleImageOpen(GtkNativeDialog * dialog, int response)
-{
+static void handleImageOpen(GtkNativeDialog * dialog, int response) {
     GFile *         file;
     GdkPixbuf *     pixBuf;
     GtkWidget *     image;
@@ -215,8 +231,7 @@ static gboolean handleFileDrop(
     return TRUE;
 }
 
-static void handleMergeOpen(GtkNativeDialog * dialog, int response)
-{
+static void handleMergeOpen(GtkNativeDialog * dialog, int response) {
     GFile *             file;
     GtkWidget *         goLabel;
     GtkWidget *         goButton;
@@ -245,8 +260,7 @@ static void handleMergeOpen(GtkNativeDialog * dialog, int response)
     g_object_unref(dialog);
 }
 
-static void handleExtractSave(GtkNativeDialog * dialog, int response)
-{
+static void handleExtractSave(GtkNativeDialog * dialog, int response) {
     GFile *             file;
     GtkWidget *         goLabel;
     GtkWidget *         goButton;
@@ -271,8 +285,7 @@ static void handleExtractSave(GtkNativeDialog * dialog, int response)
     g_object_unref(dialog);
 }
 
-static void handleGenerateSave(GtkNativeDialog * dialog, int response)
-{
+static void handleGenerateSave(GtkNativeDialog * dialog, int response) {
     GtkWidget *         xorKeystreamField;
     GFile *             file;
     uint32_t            numBytes;
@@ -295,8 +308,7 @@ static void handleGenerateSave(GtkNativeDialog * dialog, int response)
     g_object_unref(dialog);
 }
 
-static void handleActionSwitchState(GtkWidget * widget, gboolean state, gpointer data)
-{
+static void handleActionSwitchState(GtkWidget * widget, gboolean state, gpointer data) {
     GtkWidget *         addFileButton;
     GtkWidget *         extractFileButton;
     GtkWidget *         goButton;
@@ -319,8 +331,7 @@ static void handleActionSwitchState(GtkWidget * widget, gboolean state, gpointer
     }
 }
 
-static void handleAddFileButtonClick(GtkWidget * widget, gpointer data)
-{
+static void handleAddFileButtonClick(GtkWidget * widget, gpointer data) {
     GtkFileChooserNative *          openDialog;
 
     openDialog = gtk_file_chooser_native_new(
@@ -334,8 +345,7 @@ static void handleAddFileButtonClick(GtkWidget * widget, gpointer data)
     gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
 }
 
-static void handleExtractFileButtonClick(GtkWidget * widget, gpointer data)
-{
+static void handleExtractFileButtonClick(GtkWidget * widget, gpointer data) {
     GtkFileChooserNative *          saveDialog;
 
     saveDialog = gtk_file_chooser_native_new(
@@ -349,32 +359,28 @@ static void handleExtractFileButtonClick(GtkWidget * widget, gpointer data)
     gtk_native_dialog_show(GTK_NATIVE_DIALOG(saveDialog));
 }
 
-static void handleHighQualityToggle(GtkWidget * radio, gpointer data)
-{
+static void handleHighQualityToggle(GtkWidget * radio, gpointer data) {
     if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
         _cloakInfo.quality = quality_high;
         refreshCapacity();
     }
 }
 
-static void handleMediumQualityToggle(GtkWidget * radio, gpointer data)
-{
+static void handleMediumQualityToggle(GtkWidget * radio, gpointer data) {
     if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
         _cloakInfo.quality = quality_medium;
         refreshCapacity();
     }
 }
 
-static void handleLowQualityToggle(GtkWidget * radio, gpointer data)
-{
+static void handleLowQualityToggle(GtkWidget * radio, gpointer data) {
     if (gtk_check_button_get_active(GTK_CHECK_BUTTON(radio))) {
         _cloakInfo.quality = quality_low;
         refreshCapacity();
     }
 }
 
-static void handleAesEncryptionToggle(GtkWidget * radio, gpointer data)
-{
+static void handleAesEncryptionToggle(GtkWidget * radio, gpointer data) {
     GtkWidget *     aesPasswordField;
     GtkWidget *     xorKeystreamFileField;
     GtkWidget *     xorBrowseButton;
@@ -392,8 +398,7 @@ static void handleAesEncryptionToggle(GtkWidget * radio, gpointer data)
     }
 }
 
-static void handleXorEncryptionToggle(GtkWidget * radio, gpointer data)
-{
+static void handleXorEncryptionToggle(GtkWidget * radio, gpointer data) {
     GtkWidget *     aesPasswordField;
     GtkWidget *     xorKeystreamFileField;
     GtkWidget *     xorBrowseButton;
@@ -411,8 +416,7 @@ static void handleXorEncryptionToggle(GtkWidget * radio, gpointer data)
     }
 }
 
-static void handleNoneEncryptionToggle(GtkWidget * radio, gpointer data)
-{
+static void handleNoneEncryptionToggle(GtkWidget * radio, gpointer data) {
     GtkWidget *     aesPasswordField;
     GtkWidget *     xorKeystreamFileField;
     GtkWidget *     xorBrowseButton;
@@ -430,8 +434,7 @@ static void handleNoneEncryptionToggle(GtkWidget * radio, gpointer data)
     }
 }
 
-static void handleGoButtonClick(GtkWidget * widget, gpointer data)
-{
+static void handleGoButtonClick(GtkWidget * widget, gpointer data) {
     GdkPixbuf *                     pixBuf;
     GtkWidget *                     image;
     GtkWidget *                     aesPasswordField;
@@ -480,8 +483,7 @@ static void handleGoButtonClick(GtkWidget * widget, gpointer data)
     }
 }
 
-static void handleCloseButtonClick(GtkWidget * widget, gpointer data)
-{
+static void handleCloseButtonClick(GtkWidget * widget, gpointer data) {
     GtkWidget *                     mainWindow;
 
     mainWindow = (GtkWidget *)gtk_builder_get_object(_cloakInfo.builder, "mainWindow");
@@ -489,8 +491,7 @@ static void handleCloseButtonClick(GtkWidget * widget, gpointer data)
     gtk_window_destroy(GTK_WINDOW(mainWindow));
 }
 
-static void handleBrowseButtonClick(GtkWidget * widget, gpointer data)
-{
+static void handleBrowseButtonClick(GtkWidget * widget, gpointer data) {
     GtkFileChooserNative *          openDialog;
 
     openDialog = gtk_file_chooser_native_new(
@@ -504,8 +505,7 @@ static void handleBrowseButtonClick(GtkWidget * widget, gpointer data)
     gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
 }
 
-static void handleGenerateButtonClick(GtkWidget * widget, gpointer data)
-{
+static void handleGenerateButtonClick(GtkWidget * widget, gpointer data) {
     GtkFileChooserNative *          saveDialog;
 
     saveDialog = gtk_file_chooser_native_new(
@@ -519,8 +519,7 @@ static void handleGenerateButtonClick(GtkWidget * widget, gpointer data)
     gtk_native_dialog_show(GTK_NATIVE_DIALOG(saveDialog));
 }
 
-static void handleOpenButtonClick(GtkWidget * widget, gpointer data)
-{
+static void handleOpenButtonClick(GtkWidget * widget, gpointer data) {
     GtkFileChooserNative *          openDialog;
     GtkFileFilter *                 imageFilter;
 
@@ -542,8 +541,7 @@ static void handleOpenButtonClick(GtkWidget * widget, gpointer data)
     gtk_native_dialog_show(GTK_NATIVE_DIALOG(openDialog));
 }
 
-static void activate(GtkApplication * app, gpointer user_data)
-{
+static void activate(GtkApplication * app, gpointer user_data) {
     GtkBuilder *        builder;
     GdkPixbuf *         pixbuf;
     GtkDropTarget *     dropTarget;
@@ -637,8 +635,7 @@ static void activate(GtkApplication * app, gpointer user_data)
     gtk_widget_show(mainWindow);
 }
 
-int initiateGUI(int argc, char ** argv)
-{
+int initiateGUI(int argc, char ** argv) {
     GtkApplication *	app;
 	int					status;
 

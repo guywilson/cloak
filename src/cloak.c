@@ -1,4 +1,24 @@
-#include <stdio.h>
+/******************************************************************************
+Copyright (c) 2023 Guy Wilson
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+******************************************************************************/#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -16,8 +36,7 @@
 #define MEMID_IMAGEDATA							0x0001
 
 
-uint32_t getKey(uint8_t * keyBuffer, uint32_t keyBufferLength, const char * pwd)
-{
+uint32_t getKey(uint8_t * keyBuffer, uint32_t keyBufferLength, const char * pwd) {
 	char		    szPassword[MAX_PASSWORD_LENGTH + 1];
 	int				i = 0;
 	int				ch = 0;
@@ -55,8 +74,7 @@ uint32_t getKey(uint8_t * keyBuffer, uint32_t keyBufferLength, const char * pwd)
 	return keySize;
 }
 
-uint8_t getBitMask(merge_quality quality)
-{
+uint8_t getBitMask(merge_quality quality) {
 	uint8_t mask = 0x00;
 
 	switch (quality) {
@@ -80,13 +98,11 @@ uint8_t getBitMask(merge_quality quality)
 	return mask;
 }
 
-int getNumImageBytesRequired(merge_quality quality)
-{
+int getNumImageBytesRequired(merge_quality quality) {
 	return (8 / quality);
 }
 
-void mergeSecretByte(uint8_t * imageBytes, int numImageBytes, uint8_t secretByte, merge_quality quality)
-{
+void mergeSecretByte(uint8_t * imageBytes, int numImageBytes, uint8_t secretByte, merge_quality quality) {
 	uint8_t			mask;
 	uint8_t			secretBits;
 	int				i;
@@ -106,8 +122,7 @@ void mergeSecretByte(uint8_t * imageBytes, int numImageBytes, uint8_t secretByte
     }
 }
 
-uint8_t extractSecretByte(uint8_t * imageBytes, uint32_t numImageBytes, merge_quality quality)
-{
+uint8_t extractSecretByte(uint8_t * imageBytes, uint32_t numImageBytes, merge_quality quality) {
 	uint8_t			mask;
 	uint8_t			secretBits = 0x00;
 	uint8_t			secretByte = 0x00;
@@ -130,8 +145,7 @@ uint8_t extractSecretByte(uint8_t * imageBytes, uint32_t numImageBytes, merge_qu
 	return secretByte;
 }
 
-uint32_t getImageCapacity(char * pszInputImageFile, merge_quality quality)
-{
+uint32_t getImageCapacity(char * pszInputImageFile, merge_quality quality) {
 	HIMG			himgRead;
 	uint32_t		imageDataLen;
 	uint32_t		imageCapacity;

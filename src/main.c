@@ -1,3 +1,24 @@
+/******************************************************************************
+Copyright (c) 2023 Guy Wilson
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+******************************************************************************/
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -14,8 +35,28 @@
 #include "gui.h"
 #endif
 
-int _getProgNameStartPos(char * pszProgName)
-{
+const char * pszWarranty =
+    "\n\nCopyright (c) 2023 Guy Wilson\n\n" \
+
+    "Permission is hereby granted, free of charge, to any person obtaining a copy\n" \
+    "of this software and associated documentation files (the \"Software\"), to deal\n" \
+    "in the Software without restriction, including without limitation the rights\n" \
+    "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n" \
+    "copies of the Software, and to permit persons to whom the Software is\n" \
+    "furnished to do so, subject to the following conditions:\n\n" \
+
+    "The above copyright notice and this permission notice shall be included in all\n" \
+    "copies or substantial portions of the Software.\n\n" \
+
+    "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n" \
+    "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n" \
+    "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n" \
+    "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n" \
+    "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n" \
+    "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n" \
+    "SOFTWARE.\n\n";
+
+int _getProgNameStartPos(char * pszProgName) {
 	int i = strlen(pszProgName);
 
 	while (pszProgName[i] != '/' && i > 0) {
@@ -29,8 +70,7 @@ int _getProgNameStartPos(char * pszProgName)
 	return i;
 }
 
-void printVersion(char * pszProgName)
-{
+void printVersion(char * pszProgName) {
     printf(
 		"%s version %s built: %s\n\n", 
 		&pszProgName[_getProgNameStartPos(pszProgName)], 
@@ -38,8 +78,9 @@ void printVersion(char * pszProgName)
 		getBuildDate());
 }
 
-void printUsage(char * pszProgName)
-{
+void printUsage(char * pszProgName) {
+    printf("%s", pszWarranty);
+
 	printVersion(pszProgName);
 
 	printf("Using %s:\n", &pszProgName[_getProgNameStartPos(pszProgName)]);
@@ -62,8 +103,7 @@ void printUsage(char * pszProgName)
     printf("             --test=n where n is between 1 and 18 to run the numbered test case\n\n");
 }
 
-int main(int argc, char ** argv)
-{
+int main(int argc, char ** argv) {
 	int				i;
     int             testNum = 0;
 	char *			arg;

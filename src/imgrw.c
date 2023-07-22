@@ -1,4 +1,24 @@
-#include <stdio.h>
+/******************************************************************************
+Copyright (c) 2023 Guy Wilson
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+******************************************************************************/#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -16,8 +36,7 @@
 
 #define HANDLE_POOL_SIZE                            8
 
-typedef struct __attribute__((__packed__))
-{
+typedef struct __attribute__((__packed__)) {
     char            bm[2];
 	uint32_t        fileSize;
 	uint32_t        reserved;
@@ -37,8 +56,7 @@ typedef struct __attribute__((__packed__))
 }
 BMP_HEADER;
 
-typedef struct 
-{
+typedef struct  {
     int32_t         width;
     int32_t         height;
 
@@ -79,8 +97,7 @@ uint16_t                _nextId = 0x0000;
 // Global
 jmp_buf		    jmpbuf;
 
-HIMG _allocateHandle()
-{
+static HIMG _allocateHandle(void) {
     HIMG        himg = NULL;
     int         i;
 
@@ -103,8 +120,7 @@ HIMG _allocateHandle()
     return himg;
 }
 
-void _freeHandle(HIMG himg)
-{
+static void _freeHandle(HIMG himg) {
     int         i;
 
     for (i = 0;i < HANDLE_POOL_SIZE;i++) {
@@ -114,8 +130,7 @@ void _freeHandle(HIMG himg)
     }
 }
 
-img_type _getImageType(const char * pszImageName)
-{
+static img_type _getImageType(const char * pszImageName) {
     FILE *          fptr_input;
     img_type        type;
     uint8_t         header[HEADER_LOOKAHEAD_BUFFER_LEN];
@@ -161,16 +176,14 @@ img_type _getImageType(const char * pszImageName)
     return type;
 }
 
-void _readwrite_error_handler(png_structp png_ptr, png_const_charp msg)
-{
+static void _readwrite_error_handler(png_structp png_ptr, png_const_charp msg) {
     fprintf(stderr, "writepng libpng error: %s\n", msg);
     fflush(stderr);
 
     longjmp(jmpbuf, 1);
 }
 
-void imgrdr_copy_header(HIMG target, HIMG source)
-{
+void imgrdr_copy_header(HIMG target, HIMG source) {
     if (source->type == img_png) {
         memcpy(&target->geometry, &source->geometry, sizeof(IMG_GEOMETRY));
     }
@@ -180,13 +193,11 @@ void imgrdr_copy_header(HIMG target, HIMG source)
     }
 }
 
-img_type imgrdr_get_type(HIMG himg)
-{
+img_type imgrdr_get_type(HIMG himg) {
     return himg->type;
 }
 
-HIMG imgrdr_open(const char * pszImageName)
-{
+HIMG imgrdr_open(const char * pszImageName) {
     img_type            type;
 
     type = _getImageType(pszImageName);
@@ -203,8 +214,7 @@ HIMG imgrdr_open(const char * pszImageName)
     }
 }
 
-HIMG imgwrtr_open(const char * pszImageName, img_type type)
-{
+HIMG imgwrtr_open(const char * pszImageName, img_type type) {
     if (type == img_png) {
         return pngwrtr_open(pszImageName);
     }
@@ -215,8 +225,7 @@ HIMG imgwrtr_open(const char * pszImageName, img_type type)
     return 0;
 }
 
-void imgrdr_close(HIMG himg)
-{
+void imgrdr_close(HIMG himg) {
     if (himg->type == img_png) {
         pngrdr_close(himg);
     }
@@ -225,8 +234,7 @@ void imgrdr_close(HIMG himg)
     }
 }
 
-void imgwrtr_close(HIMG himg)
-{
+void imgwrtr_close(HIMG himg) {
     if (himg->type == img_png) {
         pngwrtr_close(himg);
     }
@@ -235,13 +243,11 @@ void imgwrtr_close(HIMG himg)
     }
 }
 
-void imgrdr_destroy_handle(HIMG himg)
-{
+void imgrdr_destroy_handle(HIMG himg) {
     _freeHandle(himg);
 }
 
-uint32_t imgrdr_get_data_length(HIMG himg)
-{
+uint32_t imgrdr_get_data_length(HIMG himg) {
     if (himg->type == img_png) {
         return pngrdr_get_data_length(himg);
     }
@@ -252,8 +258,7 @@ uint32_t imgrdr_get_data_length(HIMG himg)
     return 0;
 }
 
-uint32_t imgrdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength)
-{
+uint32_t imgrdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength) {
     if (himg->type == img_png) {
         return pngrdr_read(himg, data, bufferLength);
     }
@@ -264,8 +269,7 @@ uint32_t imgrdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength)
     return 0;
 }
 
-int imgwrtr_write_header(HIMG himg)
-{
+int imgwrtr_write_header(HIMG himg) {
     if (himg->type == img_png) {
         return pngwrtr_write_header(himg);
     }
@@ -276,8 +280,7 @@ int imgwrtr_write_header(HIMG himg)
     return 0;
 }
 
-uint32_t imgwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength)
-{
+uint32_t imgwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength) {
     if (himg->type == img_png) {
         return pngwrtr_write(himg, data, bufferLength);
     }
@@ -288,8 +291,7 @@ uint32_t imgwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength)
     return 0;
 }
 
-HIMG pngrdr_open(const char * pszImageName)
-{
+HIMG pngrdr_open(const char * pszImageName) {
     HIMG            himg;
 
     himg = _allocateHandle();
@@ -384,8 +386,7 @@ HIMG pngrdr_open(const char * pszImageName)
     return himg;
 }
 
-HIMG pngwrtr_open(const char * pszImageName)
-{
+HIMG pngwrtr_open(const char * pszImageName) {
     HIMG            himg;
 
     himg = _allocateHandle();
@@ -432,44 +433,37 @@ HIMG pngwrtr_open(const char * pszImageName)
     return himg;
 }
 
-void pngrdr_close(HIMG himg)
-{
+void pngrdr_close(HIMG himg) {
 	png_read_end(himg->png_ptr, NULL);
 	png_destroy_read_struct(&himg->png_ptr, &himg->info_ptr, NULL);
 
     fclose(himg->fptr);
 }
 
-void pngwrtr_close(HIMG himg)
-{
+void pngwrtr_close(HIMG himg) {
     png_write_end(himg->png_ptr, NULL);
     png_destroy_write_struct(&himg->png_ptr, &himg->info_ptr);
 
     fclose(himg->fptr);
 }
 
-uint32_t pngrdr_get_row_buffer_len(HIMG himg)
-{
+uint32_t pngrdr_get_row_buffer_len(HIMG himg) {
     return (uint32_t)png_get_rowbytes(himg->png_ptr, himg->info_ptr);
 }
 
-uint32_t pngwrtr_get_row_buffer_len(HIMG himg)
-{
+uint32_t pngwrtr_get_row_buffer_len(HIMG himg) {
     return (uint32_t)png_get_rowbytes(himg->png_ptr, himg->info_ptr);
 }
 
-uint32_t pngrdr_get_data_length(HIMG himg)
-{
+uint32_t pngrdr_get_data_length(HIMG himg) {
     return (uint32_t)(pngrdr_get_row_buffer_len(himg) * himg->geometry.height);
 }
 
-boolean pngrw_has_more_rows(HIMG himg)
-{
+boolean pngrw_has_more_rows(HIMG himg) {
     return ((himg->rowCounter < himg->geometry.height) ? True : False);
 }
 
-uint32_t pngrdr_read(HIMG himg, uint8_t * data, uint32_t dataLength)
-{
+uint32_t pngrdr_read(HIMG himg, uint8_t * data, uint32_t dataLength) {
     uint32_t        index = 0;
 
     himg->rowCounter = 0;
@@ -486,8 +480,7 @@ uint32_t pngrdr_read(HIMG himg, uint8_t * data, uint32_t dataLength)
     return index;
 }
 
-int pngrdr_read_row(HIMG himg, uint8_t * rowBuffer, uint32_t bufferLength)
-{
+int pngrdr_read_row(HIMG himg, uint8_t * rowBuffer, uint32_t bufferLength) {
     if (bufferLength < pngrdr_get_row_buffer_len(himg)) {
         fprintf(stderr, "PNG row buffer is not long enough\n");
         return -1;
@@ -500,8 +493,7 @@ int pngrdr_read_row(HIMG himg, uint8_t * rowBuffer, uint32_t bufferLength)
     return 0;
 }
 
-int pngwrtr_write_row(HIMG himg, uint8_t * rowBuffer, uint32_t bufferLength)
-{
+int pngwrtr_write_row(HIMG himg, uint8_t * rowBuffer, uint32_t bufferLength) {
     if (bufferLength < pngwrtr_get_row_buffer_len(himg)) {
         fprintf(stderr, "PNG row buffer is not long enough\n");
         return -1;
@@ -514,8 +506,7 @@ int pngwrtr_write_row(HIMG himg, uint8_t * rowBuffer, uint32_t bufferLength)
     return 0;
 }
 
-int pngwrtr_write_header(HIMG himg)
-{
+int pngwrtr_write_header(HIMG himg) {
     png_set_IHDR(
             himg->png_ptr, 
             himg->info_ptr, 
@@ -532,8 +523,7 @@ int pngwrtr_write_header(HIMG himg)
     return 0;
 }
 
-uint32_t pngwrtr_write(HIMG himg, uint8_t * data, uint32_t dataLength)
-{
+uint32_t pngwrtr_write(HIMG himg, uint8_t * data, uint32_t dataLength) {
     uint32_t        index = 0;
 
     himg->rowCounter = 0;
@@ -550,8 +540,7 @@ uint32_t pngwrtr_write(HIMG himg, uint8_t * data, uint32_t dataLength)
     return index;
 }
 
-HIMG bmprdr_open(const char * pszImageName)
-{
+HIMG bmprdr_open(const char * pszImageName) {
     HIMG            himg;
     BMP_HEADER *    pHeader;
     uint32_t        bytesRead;
@@ -644,8 +633,7 @@ HIMG bmprdr_open(const char * pszImageName)
     return himg;
 }
 
-HIMG bmpwrtr_open(const char * pszImageName)
-{
+HIMG bmpwrtr_open(const char * pszImageName) {
     HIMG            himg;
     BMP_HEADER *    pHeader;
 
@@ -684,18 +672,15 @@ HIMG bmpwrtr_open(const char * pszImageName)
     return himg;
 }
 
-void bmprdr_close(HIMG himg)
-{
+void bmprdr_close(HIMG himg) {
     fclose(himg->fptr);
 }
 
-void bmpwrtr_close(HIMG himg)
-{
+void bmpwrtr_close(HIMG himg) {
     fclose(himg->fptr);
 }
 
-uint32_t bmprdr_get_data_length(HIMG himg)
-{
+uint32_t bmprdr_get_data_length(HIMG himg) {
     uint32_t            dataLength;
 
     dataLength = himg->geometry.width * 3;
@@ -709,8 +694,7 @@ uint32_t bmprdr_get_data_length(HIMG himg)
     return dataLength;
 }
 
-uint32_t bmprdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength)
-{
+uint32_t bmprdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength) {
     uint32_t            dataLength;
     uint32_t            bytesRead;
 
@@ -726,8 +710,7 @@ uint32_t bmprdr_read(HIMG himg, uint8_t * data, uint32_t bufferLength)
     return bytesRead;
 }
 
-int bmpwrtr_write_header(HIMG himg)
-{
+int bmpwrtr_write_header(HIMG himg) {
     uint32_t        bytesWritten;
 
     /*
@@ -747,8 +730,7 @@ int bmpwrtr_write_header(HIMG himg)
     return 0;
 }
 
-uint32_t bmpwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength)
-{
+uint32_t bmpwrtr_write(HIMG himg, uint8_t * data, uint32_t bufferLength) {
     uint32_t            dataLength;
     uint32_t            bytesWritten;
 
