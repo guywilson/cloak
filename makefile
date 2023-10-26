@@ -8,7 +8,7 @@
 
 # Version number for cloak
 MAJOR_VERSION = 2
-MINOR_VERSION = 1
+MINOR_VERSION = 2
 
 # Directories
 SOURCE = src

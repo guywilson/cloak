@@ -56,7 +56,7 @@ const char * pszWarranty =
     "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n" \
     "SOFTWARE.\n\n";
 
-int _getProgNameStartPos(char * pszProgName) {
+static int _getProgNameStartPos(char * pszProgName) {
 	int i = strlen(pszProgName);
 
 	while (pszProgName[i] != '/' && i > 0) {
@@ -70,7 +70,7 @@ int _getProgNameStartPos(char * pszProgName) {
 	return i;
 }
 
-void printVersion(char * pszProgName) {
+static void printVersion(char * pszProgName) {
     printf(
 		"%s version %s built: %s\n\n", 
 		&pszProgName[_getProgNameStartPos(pszProgName)], 
@@ -78,7 +78,7 @@ void printVersion(char * pszProgName) {
 		getBuildDate());
 }
 
-void printUsage(char * pszProgName) {
+static void printUsage(char * pszProgName) {
     printf("%s", pszWarranty);
 
 	printVersion(pszProgName);
@@ -97,10 +97,52 @@ void printUsage(char * pszProgName) {
 	printf("                    'xor' for one-time pad encryption (-k is mandatory),\n");
 	printf("                    'none' for no encryption (hide only)\n");
 	printf("             --generate-otp save OTP key to file specified with -k\n");
+	printf("             --interactive interactive mode, all other arguments ignored\n");
 #ifdef BUILD_GUI
 	printf("             --gui launch app on startup, all other arguments ignored\n");
 #endif
     printf("             --test=n where n is between 1 and 18 to run the numbered test case\n\n");
+}
+
+static char * promptStr(const char * pszPrompt, const size_t maxLength) {
+    char        szLengthFormat[8];
+    char        szFormat[8];
+    char *      pszAnswer;
+
+    pszAnswer = (char *)malloc(maxLength);
+
+    if (pszAnswer == NULL) {
+        return NULL;
+    }
+
+    sprintf(szLengthFormat, "%lu", maxLength - 1);
+    sprintf(szFormat, "%%%ss", szLengthFormat);
+
+    printf("%s", pszPrompt);
+    fflush(stdout);
+
+    scanf(szFormat, pszAnswer);
+    fflush(stdin);
+
+    return pszAnswer;
+}
+
+static char promptChar(const char * pszPrompt) {
+    char        answer;
+
+    printf("%s", pszPrompt);
+    fflush(stdout);
+
+    answer = getchar();
+    fflush(stdin);
+
+    return answer;
+}
+
+static boolean promptBool(const char * pszPrompt) {
+    char answer = promptChar(pszPrompt);
+
+    return (answer == 'y' || answer == 'Y');
 }
 
 int main(int argc, char ** argv) {
@@ -121,6 +163,7 @@ int main(int argc, char ** argv) {
 	boolean			isMerge = False;
 	boolean			isReportSize = False;
 	boolean			generateOTP = False;
+    boolean         isInteractive = False;
 	merge_quality	quality = quality_high;
 	encryption_algo	algo = none;
 #ifdef BUILD_GUI
@@ -148,8 +191,13 @@ int main(int argc, char ** argv) {
 #ifdef BUILD_GUI
                 else if (strncmp(arg, "--gui", 5) == 0) {
 					isGUI = True;
+                    break;
                 }
 #endif
+                else if (strncmp(arg, "--interactive", 13) == 0) {
+					isInteractive = True;
+                    break;
+                }
                 else if (strncmp(arg, "--algo=", 7) == 0) {
                     pszAlgorithm = strdup(&arg[7]);
 
@@ -225,11 +273,128 @@ int main(int argc, char ** argv) {
 	}
 #endif
 
-	pszSourceFilename = strdup(argv[argc - 1]);
-	
-	if (pszInputFilename != NULL) {
-		isMerge = True;
-	}
+    if (isInteractive) {
+        boolean         isValid = False;
+
+        pszSourceFilename = 
+            promptStr("Enter the image (24-bit bmp or png) you want to work with: ", 256);
+
+        isValid = False;
+        while (!isValid) {
+            char mergeChar = 
+                promptChar("Do you want to (h)ide or (e)xtract a secret file?: ");
+
+            switch (mergeChar) {
+                case 'h':
+                    isMerge = True;
+                    isValid = True;
+                    break;
+
+                case 'e':
+                    isMerge = False;
+                    isValid = True;
+                    break;
+
+                default:
+                    isValid = False;
+                    printf("Invalid action!\n\n");
+                    break;
+            }
+        }
+
+        char qualityChar;
+
+        isValid = False;
+        while (!isValid) {
+            if (isMerge) {
+                pszInputFilename = 
+                    promptStr("Enter the secret file you want to hide in the image: ", 256);
+
+                qualityChar = 
+                    promptChar("Do you want hide your file with (h)igh, (m)edium, or (l)ow quality: ");
+
+                pszOutputFilename = 
+                    promptStr("Enter the output image file (PNG or BMP): ", 256);
+            }
+            else {
+                pszOutputFilename = 
+                    promptStr("Enter the secret file you want to extract from the image: ", 256);
+
+                qualityChar = 
+                    promptChar("Was the secret file hidden with (h)igh, (m)edium, or (l)ow quality: ");
+            }
+
+            switch (qualityChar) {
+                case 'h':
+                    quality = quality_high;
+                    isValid = True;
+                    break;
+
+                case 'm':
+                    quality = quality_medium;
+                    isValid = True;
+                    break;
+
+                case 'l':
+                    quality = quality_low;
+                    isValid = True;
+                    break;
+
+                default:
+                    isValid = False;
+                    printf("Invald quality enetered!\n\n");
+                    break;
+            }
+        }
+
+        isValid = False;
+        while (!isValid) {
+            char algoChar = 
+                promptChar("Which encryption scheme do you want to use - (a)es256, (x)or or (n)one?: ");
+
+            switch (algoChar) {
+                case 'a':
+                    algo = aes256;
+                    isValid = True;
+                    break;
+
+                case 'x':
+                    algo = xor;
+
+                    generateOTP = 
+                        promptBool("Do you want me to generate a keystream file or use your own (y/n): ");
+
+                    if (generateOTP) {
+                        pszKeystreamFilename = 
+                            promptStr("What keystream file name do you want me to write to: ", 256);
+                    }
+                    else {
+                        pszKeystreamFilename = 
+                            promptStr("What keystream file do you want to use (must be at least as big as the secret file): ", 256);
+                    }
+
+                    isValid = True;
+                    break;
+
+                case 'n':
+                    algo = none;
+                    isValid = True;
+                    break;
+
+                default:
+                    isValid = False;
+                    printf("Invalid encryption algorithm!\n\n");
+                    break;
+            }
+        }
+    }
+    else {
+        pszSourceFilename = strdup(argv[argc - 1]);
+        
+        if (pszInputFilename != NULL) {
+            isMerge = True;
+        }
+    }
 
 	if (algo == xor) {
 		if (pszKeystreamFilename != NULL) {
@@ -305,6 +470,9 @@ int main(int argc, char ** argv) {
 	if (algo == aes256) {
 		secureFree(key, keyBufferLen);
 	}
+
+    free(pszSourceFilename);
+    free(pszOutputFilename);
 
 	return 0;
 }
