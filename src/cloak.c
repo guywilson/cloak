@@ -18,7 +18,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-******************************************************************************/#include <stdio.h>
+******************************************************************************/
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -145,7 +146,7 @@ uint8_t extractSecretByte(uint8_t * imageBytes, uint32_t numImageBytes, merge_qu
 	return secretByte;
 }
 
-uint32_t getImageCapacity(char * pszInputImageFile, merge_quality quality) {
+uint32_t getImageCapacity(char * pszInputImageFile, merge_quality quality)  {
 	HIMG			himgRead;
 	uint32_t		imageDataLen;
 	uint32_t		imageCapacity;

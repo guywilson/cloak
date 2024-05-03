@@ -85,9 +85,10 @@ static void printUsage(char * pszProgName) {
 
 	printf("Using %s:\n", &pszProgName[_getProgNameStartPos(pszProgName)]);
     printf("    %s --help (show this help)\n", &pszProgName[_getProgNameStartPos(pszProgName)]);
-    printf("    %s [options] source-image\n", &pszProgName[_getProgNameStartPos(pszProgName)]);
-    printf("    options: -o [output file]\n");
-    printf("             -f [input file to cloak]\n");
+    printf("    %s [options] <input file to cloak>\n", &pszProgName[_getProgNameStartPos(pszProgName)]);
+    printf("    options: -o [output file] - defaults to stdout if not specified\n");
+    printf("             -i [source image]\n");
+    printf("             -f [input file to cloak] - defaults to stdin if not specified\n");
     printf("             -k [keystream file for one-time pad encryption]\n");
 	printf("             -s report image capacity then exit\n");
     printf("             --merge-quality=value where value is:\n");
@@ -258,6 +259,9 @@ int main(int argc, char ** argv) {
                 else if (strncmp(arg, "-s", 2) == 0) {
                     isReportSize = True;
                 }
+                else if (strncmp(arg, "-i", 2) == 0) {
+                    pszSourceFilename = strdup(argv[i + 1]);
+                }
                 else {
                     printf("Invalid option %s - %s --help for help", arg, argv[0]);
                     return -1;
@@ -389,8 +393,6 @@ int main(int argc, char ** argv) {
         }
     }
     else {
-        pszSourceFilename = strdup(argv[argc - 1]);
-        
         if (pszInputFilename != NULL) {
             isMerge = True;
         }

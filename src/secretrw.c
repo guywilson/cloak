@@ -18,7 +18,8 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-******************************************************************************/#include <stdio.h>
+******************************************************************************/
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -374,7 +375,12 @@ HSECRW wrtr_open(const char * pszFilename, encryption_algo a) {
 
 	hsec->fptrKey = NULL;
 
-	hsec->fptrSecret = fopen(pszFilename, "wb");
+    if (pszFilename == NULL) {
+        hsec->fptrSecret = stdout;
+    }
+    else {
+	    hsec->fptrSecret = fopen(pszFilename, "wb");
+    }
 
 	if (hsec->fptrSecret == NULL) {
 		fprintf(stderr, "Failed to open file writer with file %s: %s\n", pszFilename, strerror(errno));
