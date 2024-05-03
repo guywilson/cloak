@@ -171,7 +171,7 @@ int main(int argc, char ** argv) {
 	boolean			isGUI = False;
 #endif
 
-    if (argc > 0) {
+    if (argc > 1) {
         for (i = 1;i < argc;i++) {
             arg = argv[i];
 
@@ -268,6 +268,10 @@ int main(int argc, char ** argv) {
                 }
             }
         }
+    }
+    else {
+        printUsage(argv[0]);
+        return 0;
     }
 
 #ifdef BUILD_GUI
