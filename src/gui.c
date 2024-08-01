@@ -572,12 +572,6 @@ static void activate(GtkApplication * app, gpointer user_data) {
     mainWindow = (GtkWidget *)gtk_builder_get_object(builder, "mainWindow");
     gtk_window_set_application(GTK_WINDOW(mainWindow), app);
 
-    // menuBuilder = gtk_builder_new_from_resource("/com/guy/cloak/resources/menu.ui");
-    // menuBar = G_MENU_MODEL(gtk_builder_get_object(menuBuilder, "menubar"));
-
-    // gtk_application_set_menubar(app, menuBar);
-    // g_object_unref(menuBuilder);
-
     openButton = (GtkWidget *)gtk_builder_get_object(builder, "openButton");
     g_signal_connect(openButton, "clicked", G_CALLBACK(handleOpenButtonClick), NULL);
 
